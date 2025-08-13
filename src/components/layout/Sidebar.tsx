@@ -62,7 +62,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   return (
     <div
       className={cn(
-        'h-full bg-gradient-to-tl from-gray-100 to-blue-50 dark:from-gray-900 dark:to-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-300',
+        'h-full bg-gradient-to-t from-gray-100 to-blue-50 dark:from-gray-900 dark:to-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-300',
         'w-20', // small screens always collapsed
         collapsed ? 'md:w-20' : 'md:w-64' // md+ screens toggle
       )}

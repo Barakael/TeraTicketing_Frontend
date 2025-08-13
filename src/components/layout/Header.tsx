@@ -16,7 +16,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, sidebarCollapsed }) =>
   const [showUserMenu, setShowUserMenu] = React.useState(false);
 
   return (
-    <header className="h-16 bg-gradient-to-r from-gray-100 to-blue-50 dark:from-gray-900 dark:to-gray-700 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-6">
+    <header className="h-16 bg-gradient-to-r from-gray-100 to-indigo-100 dark:from-gray-900 dark:to-gray-700 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-6">
       <div className="flex items-center space-x-4">
         <Button
           variant="ghost"

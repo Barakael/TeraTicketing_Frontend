@@ -77,7 +77,7 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <div className="h-screen bg-gradient-to-br from-gray-100 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex">
+    <div className="h-screen bg-gradient-to-tr from-white to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex">
       <Sidebar 
         activeTab={activeTab} 
         setActiveTab={setActiveTab}
