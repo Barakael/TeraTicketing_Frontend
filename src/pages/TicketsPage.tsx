@@ -73,7 +73,7 @@ const TicketsPage: React.FC = () => {
           </p>
         </div>
         <div className="flex space-x-3">
-          <Button
+          <Button className='bg-blue-600 text-white'
             variant="outline"
             onClick={() => setShowChatbot(true)}
             icon={<Plus size={18} />}
@@ -83,7 +83,7 @@ const TicketsPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+      <div className="bg-blue-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
