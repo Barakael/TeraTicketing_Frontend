@@ -1,58 +1,37 @@
-import axios from "axios";
-import { API_BASE_URL } from "../utils/constants";
 import React, { useState } from "react";
-import { FileText, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { toast } from "react-toastify";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import PublicTicketPage from "./PublicTicketPage";
+import { useNavigate } from "react-router-dom";
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false); // Local loading state
-  const [showPublicTicket, setShowPublicTicket] = useState(false);
-
-  const api = axios.create({
-    baseURL: API_BASE_URL,
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
+  const { login, loading } = useAuth();
+  const [ShowPublicTicket, setShowPublicTicket] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setLoading(true);
 
     try {
-      const response = await api.post("/api/auth/login", {
-        email,
-        password,
-      });
+      await login(email, password);
+     // or use <CheckCircle /> from lucide-react
 
-      if (response.data.success) {
-        // Save token and user info
-        localStorage.setItem("token", response.data.token);
-        localStorage.setItem("user", JSON.stringify(response.data.user));
-
-        // Redirect to dashboard
-        window.location.href = "/dashboard";
-      } else {
-        setError(response.data.message || "Login failed. Please try again.");
-      }
-    } catch (err: any) {
-      console.error("Login error:", err);
-      setError(
-        err.response?.data?.message || "An error occurred. Please try again."
-      );
-    } finally {
-      setLoading(false);
+      navigate("/dashboard"); // 🚀 redirect to dashboard
+    } catch (err) {
+      setError("Invalid credentials");
+      toast.error("Login failed ❌");
     }
   };
 
-  if (showPublicTicket) {
+  if (ShowPublicTicket) {
     return <PublicTicketPage />;
   }
 
@@ -61,11 +40,12 @@ const LoginPage: React.FC = () => {
       <div className="max-w-md w-full">
         <div className="bg-gradient-to-br from-red-50 to-blue-300 rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">
-            <img
-              src="https://teratech.co.tz/assets/logo-4eACH_FU.png"
-              alt="Logo"
-              className="mx-auto"
-            />
+            <div className="inline-flex items-center justify-center ">
+              <img
+                src="https://teratech.co.tz/assets/logo-4eACH_FU.png"
+                alt="Logo"
+              />
+            </div>
             <p className="text-gray-600 dark:text-gray-400 mt-2">
               Sign in to your account
             </p>
@@ -113,9 +93,9 @@ const LoginPage: React.FC = () => {
           <div className="mt-2">
             <div
               onClick={() => setShowPublicTicket(true)}
-              className="hover:bg-blue-100 cursor-pointer items-center justify-center px-4 py-3 rounded-lg shadow-lg transition-colors duration-200"
+              className="hover:bg-blue-100 items-center justify-center px-4 py-3 rounded-lg shadow-lg transition-colors duration-200 cursor-pointer"
             >
-              File a ticket without being registered
+              File a ticket without being registered..
             </div>
           </div>
         </div>
