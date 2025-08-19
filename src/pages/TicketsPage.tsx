@@ -11,7 +11,7 @@ import Modal from '../components/ui/Modal';
 import PreTicketChatbot from '../components/chat/PreTicketChatbot';
 
 const TicketsPage: React.FC = () => {
-  const { tickets, filterTickets, searchTickets, exportTickets, mergeTickets, createTicket } = useTickets();
+  const { tickets = [], filterTickets, searchTickets, exportTickets, mergeTickets, createTicket } = useTickets();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({
@@ -26,28 +26,36 @@ const TicketsPage: React.FC = () => {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [showTicketDetail, setShowTicketDetail] = useState(false);
 
-  const displayedTickets = searchQuery 
+  // Apply search or filters
+  const displayedTickets = searchQuery
     ? searchTickets(searchQuery)
     : filterTickets(filters);
 
+  // Open ticket detail modal
   const handleTicketClick = (ticket: Ticket) => {
     setSelectedTicket(ticket);
     setShowTicketDetail(true);
   };
 
+  // Select/unselect tickets for merge/export
   const handleTicketSelect = (ticket: Ticket, event: React.MouseEvent) => {
     event.stopPropagation();
-    setSelectedTickets(prev => 
-      prev.includes(ticket.id) 
+    setSelectedTickets(prev =>
+      prev.includes(ticket.id)
         ? prev.filter(id => id !== ticket.id)
         : [...prev, ticket.id]
     );
   };
 
+  // Export tickets
   const handleExport = (format: 'pdf' | 'excel') => {
-    exportTickets(format, selectedTickets.length > 0 ? selectedTickets : tickets.map(t => t.id));
+    exportTickets(
+      format,
+      selectedTickets.length > 0 ? selectedTickets : tickets.map(t => t.id)
+    );
   };
 
+  // Merge exactly 2 tickets
   const handleMerge = () => {
     if (selectedTickets.length === 2) {
       mergeTickets(selectedTickets[0], selectedTickets[1]);
@@ -55,25 +63,27 @@ const TicketsPage: React.FC = () => {
     }
   };
 
+  // Create a new ticket from chatbot
   const handleTicketCreate = async (ticketData: any) => {
+    if (!user) return;
     await createTicket({
       ...ticketData,
-      createdBy: user!,
+      createdBy: user,
     });
     setShowChatbot(false);
   };
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Tickets</h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Manage and track support tickets
-          </p>
+          <p className="text-gray-600 dark:text-gray-400">Manage and track support tickets</p>
         </div>
         <div className="flex space-x-3">
-          <Button className='bg-blue-600 text-white'
+          <Button
+            className="bg-blue-600 text-white"
             variant="outline"
             onClick={() => setShowChatbot(true)}
             icon={<Plus size={18} />}
@@ -83,6 +93,7 @@ const TicketsPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Search bar */}
       <div className="bg-blue-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <div className="relative">
@@ -97,6 +108,7 @@ const TicketsPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Filters and actions */}
         <TicketFilters
           filters={filters}
           onFilterChange={setFilters}
@@ -105,6 +117,7 @@ const TicketsPage: React.FC = () => {
           selectedCount={selectedTickets.length}
         />
 
+        {/* Tickets list */}
         <div className="p-6">
           {displayedTickets.length === 0 ? (
             <div className="text-center py-12">
@@ -134,6 +147,7 @@ const TicketsPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Chatbot modal for new ticket */}
       <Modal
         isOpen={showChatbot}
         onClose={() => setShowChatbot(false)}
@@ -143,8 +157,8 @@ const TicketsPage: React.FC = () => {
         <PreTicketChatbot onTicketCreate={handleTicketCreate} />
       </Modal>
 
+      {/* Ticket detail modal */}
       <TicketDetailModal
-        
         ticket={selectedTicket}
         isOpen={showTicketDetail}
         onClose={() => {
