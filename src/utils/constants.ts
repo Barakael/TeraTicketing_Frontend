@@ -39,12 +39,14 @@ export const ROLE_PERMISSIONS = {
   },
 };
 
+export const API_BASE_URL = 'http://127.0.0.1:8000';
+
 export const API_ENDPOINTS = {
-  LOGIN: '/api/auth/login',
-  LOGOUT: '/api/auth/logout',
-  TICKETS: '/api/tickets',
-  USERS: '/api/users',
-  COMMENTS: '/api/comments',
-  ANALYTICS: '/api/analytics',
-  EXPORT: '/api/export',
+  LOGIN: '${API_BASE_URL}/api/auth/login',
+  LOGOUT: '${API_BASE_URL}/api/auth/logout',
+  TICKETS: '${API_BASE_URl}/api/tickets',
+  USERS: '${API_BASE_URl}/api/users',
+  COMMENTS: '${API_BASE_URl}/api/comments',
+  ANALYTICS: '${API_BASE_URl}/api/analytics',
+  EXPORT: '${API_BASE_URl}/api/export',
 };
