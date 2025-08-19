@@ -1,10 +1,12 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import axios from 'axios';
+import { toast } from 'react-toastify';
 import { Ticket, Comment, Analytics } from '../types';
-import { mockTickets, mockAnalytics } from '../utils/mockData';
+import { API_BASE_URL } from '../utils/constants';
 
 interface TicketContextType {
   tickets: Ticket[];
-  analytics: Analytics;
+  analytics: Analytics | null;
   loading: boolean;
   createTicket: (ticketData: Partial<Ticket>) => Promise<void>;
   updateTicket: (ticketId: string, updates: Partial<Ticket>) => Promise<void>;
@@ -19,9 +21,7 @@ const TicketContext = createContext<TicketContextType | undefined>(undefined);
 
 export const useTickets = () => {
   const context = useContext(TicketContext);
-  if (!context) {
-    throw new Error('useTickets must be used within a TicketProvider');
-  }
+  if (!context) throw new Error('useTickets must be used within a TicketProvider');
   return context;
 };
 
@@ -30,65 +30,93 @@ interface TicketProviderProps {
 }
 
 export const TicketProvider: React.FC<TicketProviderProps> = ({ children }) => {
-  const [tickets, setTickets] = useState<Ticket[]>(mockTickets);
-  const [analytics, setAnalytics] = useState<Analytics>(mockAnalytics);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const normalizeTicket = (ticket: any): Ticket => ({
+    ...ticket,
+    status: typeof ticket.status === 'string' ? ticket.status : ticket.status?.name || 'unknown',
+    priority: typeof ticket.priority === 'string' ? ticket.priority : ticket.priority?.name || 'low',
+    createdBy: { ...ticket.createdBy, name: ticket.createdBy?.name || 'Unknown' },
+    assignedTo: ticket.assignedTo
+      ? { ...ticket.assignedTo, name: ticket.assignedTo?.name || 'Unassigned' }
+      : null,
+    comments: ticket.comments || [],
+    attachments: ticket.attachments || [],
+  });
+
+  const fetchTickets = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/tickets`);
+      const normalized = (res.data.data || []).map(normalizeTicket);
+      setTickets(normalized);
+    } catch (err: any) {
+      console.error('Error fetching tickets:', err);
+      toast.error('Failed to fetch tickets.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTickets();
+  }, []);
 
   const createTicket = async (ticketData: Partial<Ticket>) => {
     setLoading(true);
-    // Simulate API call
-    const newTicket: Ticket = {
-      id: Date.now().toString(),
-      title: ticketData.title || '',
-      description: ticketData.description || '',
-      priority: ticketData.priority || 'medium',
-      status: 'pending',
-      category: ticketData.category || 'general',
-      department: ticketData.department || 'IT',
-      createdBy: ticketData.createdBy!,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      comments: [],
-    };
-    
-    setTickets(prev => [newTicket, ...prev]);
-    setLoading(false);
+    try {
+      const res = await axios.post(`${API_BASE_URL}/api/tickets`, ticketData);
+      setTickets(prev => [normalizeTicket(res.data.data), ...prev]);
+      toast.success('Ticket created successfully!');
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Failed to create ticket.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const updateTicket = async (ticketId: string, updates: Partial<Ticket>) => {
-    setTickets(prev => prev.map(ticket => 
-      ticket.id === ticketId 
-        ? { ...ticket, ...updates, updatedAt: new Date().toISOString() }
-        : ticket
-    ));
+    setLoading(true);
+    try {
+      const res = await axios.put(`${API_BASE_URL}/api/tickets/${ticketId}`, updates);
+      setTickets(prev =>
+        prev.map(t => (t.id === ticketId ? normalizeTicket(res.data.data) : t))
+      );
+      toast.success('Ticket updated successfully!');
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Failed to update ticket.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const addComment = async (ticketId: string, commentData: Omit<Comment, 'id' | 'createdAt'>) => {
-    const newComment: Comment = {
-      ...commentData,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-    };
-    
-    setTickets(prev => prev.map(ticket => 
-      ticket.id === ticketId 
-        ? { 
-            ...ticket, 
-            comments: [...ticket.comments, newComment],
-            updatedAt: new Date().toISOString()
-          }
-        : ticket
-    ));
+    try {
+      const res = await axios.post(`${API_BASE_URL}/api/tickets/${ticketId}/comments`, commentData);
+      setTickets(prev =>
+        prev.map(ticket =>
+          ticket.id === ticketId
+            ? { ...ticket, comments: [...ticket.comments, res.data.data] }
+            : ticket
+        )
+      );
+      toast.success('Comment added successfully!');
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Failed to add comment.');
+    }
   };
 
   const mergeTickets = async (primaryId: string, secondaryId: string) => {
-    // Implementation for merging tickets
-    console.log('Merging tickets:', primaryId, secondaryId);
+    console.log('Merge tickets:', primaryId, secondaryId);
   };
 
   const exportTickets = async (format: 'pdf' | 'excel', ticketIds: string[]) => {
-    // Implementation for exporting tickets
-    console.log('Exporting tickets:', format, ticketIds);
+    console.log('Export tickets:', format, ticketIds);
   };
 
   const filterTickets = (filters: any): Ticket[] => {
@@ -102,16 +130,17 @@ export const TicketProvider: React.FC<TicketProviderProps> = ({ children }) => {
   };
 
   const searchTickets = (query: string): Ticket[] => {
-    const lowercaseQuery = query.toLowerCase();
-    return tickets.filter(ticket =>
-      ticket.title.toLowerCase().includes(lowercaseQuery) ||
-      ticket.description.toLowerCase().includes(lowercaseQuery) ||
-      ticket.category.toLowerCase().includes(lowercaseQuery)
+    const lower = query.toLowerCase();
+    return tickets.filter(
+      t =>
+        t.title.toLowerCase().includes(lower) ||
+        t.description.toLowerCase().includes(lower) ||
+        t.category.toLowerCase().includes(lower)
     );
   };
 
   return (
-    <TicketContext.Provider 
+    <TicketContext.Provider
       value={{
         tickets,
         analytics,
