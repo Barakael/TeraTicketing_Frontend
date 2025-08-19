@@ -19,8 +19,8 @@ const DashboardPage: React.FC = () => {
     return 'Good evening';
   };
 
-  // ✅ Fallbacks to avoid undefined errors
-  const safeAnalytics = analytics || {
+  // Null-safe fallbacks
+  const safeAnalytics = analytics ?? {
     newTickets: 0,
     openTickets: 0,
     closedTickets: 0,
@@ -28,9 +28,9 @@ const DashboardPage: React.FC = () => {
     ticketsByPriority: { critical: 0, high: 0, medium: 0, low: 0 },
     workloadDistribution: {},
   };
-  const userName = user?.name || 'User';
+  const userName = user?.name ?? 'User';
 
-  // ✅ WebSocket connection
+  // WebSocket connection (optional)
   useEffect(() => {
     const wsToken = localStorage.getItem('authToken');
     if (!wsToken) return;
@@ -45,24 +45,17 @@ const DashboardPage: React.FC = () => {
     return () => ws.close();
   }, []);
 
-  // Show loader if user or analytics not ready
-  if (!analytics || !user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
-
+  // Stats cards data
   const stats = [
-    { title: 'New Tickets', value: `${safeAnalytics.newTickets}`, change: { value: 12, type: 'increase' as const, period: 'last week' }, icon: Ticket, color: 'blue' as const },
+    { title: 'New Tickets', value: safeAnalytics.newTickets, change: { value: 12, type: 'increase' as const, period: 'last week' }, icon: Ticket, color: 'blue' as const },
     { title: 'Open Tickets', value: safeAnalytics.openTickets, change: { value: 5, type: 'decrease' as const, period: 'last week' }, icon: Clock, color: 'yellow' as const },
-    { title: 'Resolved tickets', value: `${safeAnalytics.closedTickets}`, change: { value: 8, type: 'increase' as const, period: 'last month' }, icon: TrendingUp, color: 'green' as const },
-    { title: 'Total Tickets', value: `${safeAnalytics.totalTickets}`, change: { value: 15, type: 'decrease' as const, period: 'last month' }, icon: BarChart3, color: 'purple' as const },
+    { title: 'Resolved Tickets', value: safeAnalytics.closedTickets, change: { value: 8, type: 'increase' as const, period: 'last month' }, icon: TrendingUp, color: 'green' as const },
+    { title: 'Total Tickets', value: safeAnalytics.totalTickets, change: { value: 15, type: 'decrease' as const, period: 'last month' }, icon: BarChart3, color: 'purple' as const },
   ];
 
   return (
     <div className="space-y-6">
+      {/* Greeting */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -122,10 +115,13 @@ const DashboardPage: React.FC = () => {
         {/* Workload Distribution */}
         <div className="bg-gradient-to-r from-gray-100 to-blue-50 dark:from-gray-800 dark:to-gray-700 rounded-lg border border-gray-200 dark:border-gray-700 p-6 shadow-xl">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Workload Distribution this Month</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Workload Distribution</h3>
             <Users className="w-5 h-5 text-gray-400" />
           </div>
           <div className="space-y-3">
+            {Object.keys(safeAnalytics.workloadDistribution).length === 0 && (
+              <p className="text-gray-500 dark:text-gray-400">No data available</p>
+            )}
             {Object.entries(safeAnalytics.workloadDistribution).map(([person, count]) => (
               <div key={person} className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{person}</span>
@@ -134,7 +130,7 @@ const DashboardPage: React.FC = () => {
                     <div
                       className="bg-blue-600 h-2 rounded-full"
                       style={{
-                        width: `${(count / Math.max(...Object.values(safeAnalytics.workloadDistribution))) * 100}%`,
+                        width: `${(count / Math.max(...Object.values(safeAnalytics.workloadDistribution))) * 100 || 0}%`,
                       }}
                     />
                   </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BarChart3, TrendingUp, Clock, Users, Download, Calendar, Filter } from 'lucide-react';
+import { BarChart3, TrendingUp, Clock, Users, Download } from 'lucide-react';
 import { useTickets } from '../contexts/TicketContext';
 import { useAuth } from '../contexts/AuthContext';
 import StatsCard from '../components/dashboard/StatsCard';
@@ -11,31 +11,41 @@ const AnalyticsPage: React.FC = () => {
   const [dateRange, setDateRange] = useState('30');
   const [selectedDepartment, setSelectedDepartment] = useState('');
 
+  // Null safety
+  const safeAnalytics = analytics ?? {
+    averageResolutionTime: 0,
+    resolutionRate: 0,
+    totalTickets: 0,
+    workloadDistribution: {},
+    ticketsByPriority: { critical: 0, high: 0, medium: 0, low: 0 },
+  };
+  const userName = user?.name ?? 'User';
+
   const performanceMetrics = [
     {
       title: 'Average Resolution Time',
-      value: `${analytics.averageResolutionTime}h`,
+      value: `${safeAnalytics.averageResolutionTime}h`,
       change: { value: 15, type: 'decrease' as const, period: 'last month' },
       icon: Clock,
       color: 'blue' as const,
     },
     {
       title: 'Resolution Rate',
-      value: `${analytics.resolutionRate}%`,
+      value: `${safeAnalytics.resolutionRate}%`,
       change: { value: 8, type: 'increase' as const, period: 'last month' },
       icon: TrendingUp,
       color: 'green' as const,
     },
     {
       title: 'Active Troubleshooters',
-      value: Object.keys(analytics.workloadDistribution).length,
+      value: Object.keys(safeAnalytics.workloadDistribution).length,
       change: { value: 2, type: 'increase' as const, period: 'last week' },
       icon: Users,
       color: 'purple' as const,
     },
     {
       title: 'Tickets This Month',
-      value: analytics.totalTickets,
+      value: safeAnalytics.totalTickets,
       change: { value: 12, type: 'increase' as const, period: 'last month' },
       icon: BarChart3,
       color: 'yellow' as const,
@@ -51,7 +61,9 @@ const AnalyticsPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Analytics</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Analytics Dashboard
+          </h1>
           <p className="text-gray-600 dark:text-gray-400">
             Performance insights and ticket analytics
           </p>
@@ -84,6 +96,7 @@ const AnalyticsPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Performance Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {performanceMetrics.map((metric, index) => (
           <StatsCard
@@ -97,7 +110,9 @@ const AnalyticsPage: React.FC = () => {
         ))}
       </div>
 
+      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Ticket Volume Trend */}
         <div className="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 shadow-lg">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Ticket Volume Trend
@@ -111,21 +126,35 @@ const AnalyticsPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Resolution Time by Priority */}
         <div className="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 shadow-lg">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Resolution Time by Priority
           </h3>
           <div className="space-y-4">
-            {Object.entries(analytics.ticketsByPriority).map(([priority, count]) => {
-              const avgTime = priority === 'critical' ? 2 : priority === 'high' ? 8 : priority === 'medium' ? 24 : 48;
+            {Object.entries(safeAnalytics.ticketsByPriority).map(([priority, count]) => {
+              const avgTime =
+                priority === 'critical'
+                  ? 2
+                  : priority === 'high'
+                  ? 8
+                  : priority === 'medium'
+                  ? 24
+                  : 48;
               return (
                 <div key={priority} className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className={`w-3 h-3 rounded-full ${
-                      priority === 'critical' ? 'bg-red-500' :
-                      priority === 'high' ? 'bg-orange-500' :
-                      priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
-                    }`} />
+                    <div
+                      className={`w-3 h-3 rounded-full ${
+                        priority === 'critical'
+                          ? 'bg-red-500'
+                          : priority === 'high'
+                          ? 'bg-orange-500'
+                          : priority === 'medium'
+                          ? 'bg-yellow-500'
+                          : 'bg-green-500'
+                      }`}
+                    />
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">
                       {priority}
                     </span>
@@ -143,6 +172,7 @@ const AnalyticsPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Team Performance */}
       <div className="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 shadow-lg">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
           Team Performance
@@ -169,11 +199,11 @@ const AnalyticsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {Object.entries(analytics.workloadDistribution).map(([person, assigned]) => {
+              {Object.entries(safeAnalytics.workloadDistribution).map(([person, assigned]) => {
                 const completed = Math.floor(assigned * 0.8);
                 const avgTime = Math.floor(Math.random() * 20) + 10;
                 const performance = Math.floor((completed / assigned) * 100);
-                
+
                 return (
                   <tr key={person} className="border-b border-gray-100 dark:border-gray-700">
                     <td className="py-3 px-4 text-gray-900 dark:text-white">{person}</td>
@@ -183,10 +213,13 @@ const AnalyticsPage: React.FC = () => {
                     <td className="py-3 px-4">
                       <div className="flex items-center space-x-2">
                         <div className="w-16 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                          <div 
+                          <div
                             className={`h-2 rounded-full ${
-                              performance >= 80 ? 'bg-green-500' :
-                              performance >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                              performance >= 80
+                                ? 'bg-green-500'
+                                : performance >= 60
+                                ? 'bg-yellow-500'
+                                : 'bg-red-500'
                             }`}
                             style={{ width: `${performance}%` }}
                           />
