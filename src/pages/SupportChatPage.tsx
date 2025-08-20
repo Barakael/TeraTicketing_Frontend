@@ -1,17 +1,19 @@
-import React, { useState } from 'react';
-import { Send, Bot, User, MessageCircle, Search, Filter } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Send, Bot, User, MessageCircle, Search } from 'lucide-react';
+import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import { ChatMessage } from '../types';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Badge from '../components/ui/Badge';
+import { API_BASE_URL } from '../utils/constants';
 
 interface ChatSession {
   id: string;
   userId?: string;
   userName: string;
   userEmail?: string;
-  status: 'active' | 'waiting' | 'closed';
+  status: { id: number; name: string } | string; // status can be object from API
   lastMessage: string;
   lastMessageTime: string;
   unreadCount: number;
@@ -25,116 +27,104 @@ const SupportChatPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  const [chatSessions] = useState<ChatSession[]>([
-    {
-      id: '1',
-      userName: 'Anonymous User',
-      status: 'active',
-      lastMessage: 'I need help with my login issue',
-      lastMessageTime: '2 minutes ago',
-      unreadCount: 2,
-      isAnonymous: true,
-    },
-    {
-      id: '2',
-      userId: 'user123',
-      userName: 'John Smith',
-      userEmail: 'john.smith@company.com',
-      status: 'waiting',
-      lastMessage: 'The printer is still not working',
-      lastMessageTime: '15 minutes ago',
-      unreadCount: 1,
-      isAnonymous: false,
-    },
-    {
-      id: '3',
-      userName: 'Anonymous User',
-      status: 'active',
-      lastMessage: 'Thank you for your help!',
-      lastMessageTime: '1 hour ago',
-      unreadCount: 0,
-      isAnonymous: true,
-    },
-  ]);
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+  const [messages, setMessages] = useState<Record<string, ChatMessage[]>>({});
 
-  const [messages] = useState<Record<string, ChatMessage[]>>({
-    '1': [
-      {
-        id: '1',
-        content: 'Hello! I need help with my login issue. I can\'t access my account.',
-        sender: 'user',
-        timestamp: new Date(Date.now() - 300000).toISOString(),
-      },
-      {
-        id: '2',
-        content: 'I understand you\'re having trouble logging in. Can you tell me what error message you\'re seeing?',
-        sender: 'bot',
-        timestamp: new Date(Date.now() - 240000).toISOString(),
-      },
-      {
-        id: '3',
-        content: 'It says "Invalid credentials" but I\'m sure my password is correct.',
-        sender: 'user',
-        timestamp: new Date(Date.now() - 120000).toISOString(),
-      },
-    ],
-    '2': [
-      {
-        id: '1',
-        content: 'Hi, I reported a printer issue yesterday but it\'s still not working.',
-        sender: 'user',
-        timestamp: new Date(Date.now() - 900000).toISOString(),
-      },
-      {
-        id: '2',
-        content: 'I see your previous ticket. Let me check the status and get back to you.',
-        sender: 'bot',
-        timestamp: new Date(Date.now() - 840000).toISOString(),
-      },
-    ],
-    '3': [
-      {
-        id: '1',
-        content: 'The issue has been resolved. Thank you for your quick response!',
-        sender: 'user',
-        timestamp: new Date(Date.now() - 3600000).toISOString(),
-      },
-      {
-        id: '2',
-        content: 'You\'re welcome! Is there anything else I can help you with?',
-        sender: 'bot',
-        timestamp: new Date(Date.now() - 3540000).toISOString(),
-      },
-    ],
-  });
+  // -----------------------------
+  // Fetch chat sessions from API
+  // -----------------------------
+  const fetchChats = async () => {
+    try {
+      const res = await axios.get('${API_BASE_URL}/api/messages'); // replace with your chat API
+      if (Array.isArray(res.data.data)) {
+        setChatSessions(res.data.data);
+      } else {
+        console.error('API returned non-array:', res.data.data);
+      }
+    } catch (err) {
+      console.error('Error loading chats:', err);
+    }
+  };
 
-  const filteredSessions = chatSessions.filter(session => {
-    const matchesSearch = session.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         session.lastMessage.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || session.status === statusFilter;
+  // -----------------------------
+  // Fetch messages for a selected chat
+  // -----------------------------
+  const fetchMessages = async (chatId: string) => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/messages?chat_id=${chatId}`);
+      if (Array.isArray(res.data.data)) {
+        setMessages((prev) => ({ ...prev, [chatId]: res.data.data }));
+      } else {
+        console.error('Messages API returned non-array:', res.data.data);
+      }
+    } catch (err) {
+      console.error('Error loading messages:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchChats();
+  }, []);
+
+  useEffect(() => {
+    if (selectedChat) fetchMessages(selectedChat);
+  }, [selectedChat]);
+
+  // -----------------------------
+  // Send message to API
+  // -----------------------------
+  const handleSendMessage = async () => {
+    if (!message.trim() || !selectedChat) return;
+
+    try {
+      const res = await axios.post('${API_BASE_URL}/api/messages', {
+        chat_id: selectedChat,
+        content: message,
+        is_from_chatbot: false,
+        user_id: user?.id,
+      });
+
+      // Append new message to state
+      setMessages((prev) => ({
+        ...prev,
+        [selectedChat]: [...(prev[selectedChat] || []), res.data.data],
+      }));
+
+      setMessage('');
+    } catch (err) {
+      console.error('Error sending message:', err);
+    }
+  };
+
+  // -----------------------------
+  // Filter chat sessions
+  // -----------------------------
+  const filteredSessions = chatSessions.filter((session) => {
+    const statusName =
+      typeof session.status === 'string' ? session.status : session.status?.name || '';
+    const matchesSearch =
+      session.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      session.lastMessage.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || statusName === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const handleSendMessage = () => {
-    if (!message.trim() || !selectedChat) return;
-    
-    // Implementation for sending message
-    console.log('Sending message:', message, 'to chat:', selectedChat);
-    setMessage('');
-  };
-
-  const getStatusColor = (status: ChatSession['status']) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'success';
-      case 'waiting': return 'warning';
-      case 'closed': return 'default';
-      default: return 'default';
+      case 'active':
+        return 'success';
+      case 'waiting':
+        return 'warning';
+      case 'closed':
+        return 'default';
+      default:
+        return 'default';
     }
   };
 
   return (
     <div className="h-[calc(100vh-8rem)] flex bg-gradient-to-r from-gray-100 to-blue-50 dark:from-gray-900 dark:to-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-      {/* Chat Sessions Sidebar */}
+      {/* Sidebar */}
       <div className="w-80 border-r border-gray-200 dark:border-gray-700 flex flex-col">
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
@@ -165,57 +155,59 @@ const SupportChatPage: React.FC = () => {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {filteredSessions.map((session) => (
-            <div
-              key={session.id}
-              onClick={() => setSelectedChat(session.id)}
-              className={`p-4 border-b border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
-                selectedChat === session.id ? 'bg-blue-50 dark:bg-blue-900/20 border-r-2 border-r-blue-500' : ''
-              }`}
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center">
-                    {session.isAnonymous ? (
-                      <User className="w-4 h-4 text-white" />
-                    ) : (
-                      <span className="text-white text-xs font-medium">
-                        {session.userName.split(' ').map(n => n[0]).join('')}
-                      </span>
-                    )}
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-white text-sm">
-                      {session.userName}
-                    </p>
-                    {session.userEmail && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {session.userEmail}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex flex-col items-end space-y-1">
-                  <Badge variant={getStatusColor(session.status)} size="sm">
-                    {session.status}
-                  </Badge>
-                  {session.unreadCount > 0 && (
-                    <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
-                      <span className="text-xs text-white font-medium">
-                        {session.unreadCount}
-                      </span>
+          {filteredSessions.map((session) => {
+            const statusName =
+              typeof session.status === 'string' ? session.status : session.status?.name || '';
+            return (
+              <div
+                key={session.id}
+                onClick={() => setSelectedChat(session.id)}
+                className={`p-4 border-b border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
+                  selectedChat === session.id
+                    ? 'bg-blue-50 dark:bg-blue-900/20 border-r-2 border-r-blue-500'
+                    : ''
+                }`}
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center">
+                      {session.isAnonymous ? (
+                        <User className="w-4 h-4 text-white" />
+                      ) : (
+                        <span className="text-white text-xs font-medium">
+                          {session.userName?.split(' ').map((n) => n[0]).join('')}
+                        </span>
+                      )}
                     </div>
-                  )}
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-white text-sm">
+                        {session.userName}
+                      </p>
+                      {session.userEmail && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {session.userEmail}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end space-y-1">
+                    <Badge variant={getStatusColor(statusName)} size="sm">
+                      {statusName}
+                    </Badge>
+                    {session.unreadCount > 0 && (
+                      <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
+                        <span className="text-xs text-white font-medium">{session.unreadCount}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-1">
+                  {session.lastMessage}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-500">{session.lastMessageTime}</p>
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-1">
-                {session.lastMessage}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-500">
-                {session.lastMessageTime}
-              </p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -232,15 +224,23 @@ const SupportChatPage: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="font-medium text-gray-900 dark:text-white">
-                      {filteredSessions.find(s => s.id === selectedChat)?.userName}
+                      {filteredSessions.find((s) => s.id === selectedChat)?.userName}
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {filteredSessions.find(s => s.id === selectedChat)?.isAnonymous ? 'Anonymous User' : 'Registered User'}
+                      {filteredSessions.find((s) => s.id === selectedChat)?.isAnonymous
+                        ? 'Anonymous User'
+                        : 'Registered User'}
                     </p>
                   </div>
                 </div>
-                <Badge variant={getStatusColor(filteredSessions.find(s => s.id === selectedChat)?.status || 'active')}>
-                  {filteredSessions.find(s => s.id === selectedChat)?.status}
+                <Badge
+                  variant={getStatusColor(
+                    (filteredSessions.find((s) => s.id === selectedChat)?.status as any)?.name ||
+                      'default'
+                  )}
+                >
+                  {(filteredSessions.find((s) => s.id === selectedChat)?.status as any)?.name ||
+                    'Unknown'}
                 </Badge>
               </div>
             </div>
@@ -248,11 +248,20 @@ const SupportChatPage: React.FC = () => {
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {messages[selectedChat]?.map((msg) => (
-                <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`flex items-start space-x-2 max-w-xs ${msg.sender === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      msg.sender === 'user' ? 'bg-blue-600' : 'bg-gray-600'
-                    }`}>
+                <div
+                  key={msg.id}
+                  className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`flex items-start space-x-2 max-w-xs ${
+                      msg.sender === 'user' ? 'flex-row-reverse space-x-reverse' : ''
+                    }`}
+                  >
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        msg.sender === 'user' ? 'bg-blue-600' : 'bg-gray-600'
+                      }`}
+                    >
                       {msg.sender === 'user' ? (
                         <User className="w-4 h-4 text-white" />
                       ) : (
@@ -260,11 +269,13 @@ const SupportChatPage: React.FC = () => {
                       )}
                     </div>
                     <div>
-                      <div className={`p-3 rounded-lg ${
-                        msg.sender === 'user'
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
-                      }`}>
+                      <div
+                        className={`p-3 rounded-lg ${
+                          msg.sender === 'user'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
+                        }`}
+                      >
                         {msg.content}
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -301,7 +312,7 @@ const SupportChatPage: React.FC = () => {
                 Select a chat to start messaging
               </h3>
               <p className="text-gray-600 dark:text-gray-400">
-                Choose a conversation from the sidebar to view and respond to messages
+                Choose a conversation from the sidebar to view messages.
               </p>
             </div>
           </div>
