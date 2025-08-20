@@ -83,7 +83,7 @@ const TicketsPage: React.FC = () => {
         </div>
         <div className="flex space-x-3">
           <Button
-            className="bg-blue-600 text-white"
+            className="bg-blue-600 text-white hover:bg-blue-800 shadow-2xl"
             variant="outline"
             onClick={() => setShowChatbot(true)}
             icon={<Plus size={18} />}

@@ -22,7 +22,7 @@ const PublicTicketPage: React.FC = () => {
     {
       question: "Hi! I'm here to help you create a support ticket. What type of issue are you experiencing?",
       field: 'category',
-      suggestions: ['Login issues', 'Software problem', 'Hardware malfunction', 'Network connectivity', 'Account access', 'Other']
+      suggestions: ['mataptap', 'Software problem', 'Hardware malfunction', 'Network connectivity', 'Account access', 'Other']
     },
     {
       question: "How urgent is this issue for you?",
