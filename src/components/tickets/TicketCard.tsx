@@ -89,7 +89,7 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onClick, onSelect, sele
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-1">
             <User size={14} />
-            <span>{ticket.createdBy?.name || 'Unknown'}</span>
+            <span>{ticket.user?.name || 'Unknown'}</span>
           </div>
           {ticket.assignedTo && (
             <div className="flex items-center space-x-1">
@@ -113,7 +113,7 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onClick, onSelect, sele
           )}
           <div className="flex items-center space-x-1">
             <Clock size={14} />
-            <span>{formatDistanceToNow(ticket.createdAt)}</span>
+            <span>{formatDistanceToNow(ticket.created_at)}</span>
           </div>
         </div>
       </div>
