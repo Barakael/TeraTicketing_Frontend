@@ -42,7 +42,7 @@ const TicketFilters: React.FC<TicketFiltersProps> = ({
 
   const departmentOptions = [
     { value: '', label: 'All Departments' },
-    { value: 'IT', label: 'IT' },
+    { value: 'software department', label: 'software department' },
     { value: 'HR', label: 'HR' },
     { value: 'Finance', label: 'Finance' },
     { value: 'Operations', label: 'Operations' },
@@ -99,12 +99,7 @@ const TicketFilters: React.FC<TicketFiltersProps> = ({
           ))}
         </select>
 
-        <input
-          type="date"
-          value={filters.dateRange}
-          onChange={(e) => handleFilterChange('dateRange', e.target.value)}
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-        />
+      
 
         <div className="flex items-center space-x-2 ml-auto">
           {selectedCount > 0 && (

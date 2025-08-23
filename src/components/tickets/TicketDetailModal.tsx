@@ -207,20 +207,20 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ ticket, isOpen, o
           </div>
 
           {/* Ticket Side Info */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-">
             <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
               <h4 className="font-medium text-gray-900 dark:text-white mb-3">Ticket Details</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600 dark:text-gray-400">Created:</span>
                   <span className="text-gray-900 dark:text-white">
-                    {formatDateTime(ticket.createdAt)}
+                    {formatDateTime(ticket.created_at)}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600 dark:text-gray-400">Updated:</span>
                   <span className="text-gray-900 dark:text-white">
-                    {formatDateTime(ticket.updatedAt)}
+                    {formatDateTime(ticket.updated_at)}
                   </span>
                 </div>
                 <div className="flex justify-between">
