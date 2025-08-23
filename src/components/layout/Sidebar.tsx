@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { LayoutDashboard, Ticket, Users, BarChart3, Settings, MessageCircle, ChevronDown, User, Shield, Database, Layers } from 'lucide-react';
+import {
+  LayoutDashboard, Ticket, Users, BarChart3, Settings,
+  MessageCircle, ChevronDown, User, Shield, Database, Layers
+} from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../../utils/cn';
 import { useNavigate } from 'react-router-dom';
@@ -13,7 +16,23 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, collapsed }) => {
   const { user } = useAuth();
   const [settingsExpanded, setSettingsExpanded] = useState(false);
+  const [isMobileCollapsed, setIsMobileCollapsed] = useState(false);
   const navigate = useNavigate();
+
+  // Collapse on small screens
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setIsMobileCollapsed(true);
+      } else {
+        setIsMobileCollapsed(false);
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'department_leader', 'troubleshooter'], path: '/dashboard' },
@@ -40,13 +59,20 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, collapsed })
 
   const handleSettingsClick = () => setSettingsExpanded(!settingsExpanded);
 
+  const finalCollapsed = collapsed || isMobileCollapsed;
+
   return (
-    <div className={cn('h-full bg-gray-100 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-300',
-      collapsed ? 'w-20' : 'w-64')}>
-      
+    <div
+      className={cn(
+        'h-full bg-gray-100 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-300',
+        finalCollapsed ? 'w-20' : 'w-64'
+      )}
+    >
       {/* Logo */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-        {!collapsed && <img src="https://teratech.co.tz/assets/logo-4eACH_FU.png" alt="Logo" />}
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-center">
+        {!finalCollapsed && (
+          <img src="https://teratech.co.tz/assets/logo-4eACH_FU.png" alt="Logo" />
+        )}
       </div>
 
       {/* Menu */}
@@ -54,10 +80,18 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, collapsed })
         {filteredMenuItems.map(item => {
           const Icon = item.icon;
           return (
-            <button key={item.id} onClick={() => handleItemClick(item.id, item.path)}
-              className={cn('w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200',
-                activeTab === item.id ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800')}>
-              <Icon size={18} /> {!collapsed && <span>{item.label}</span>}
+            <button
+              key={item.id}
+              onClick={() => handleItemClick(item.id, item.path)}
+              className={cn(
+                'w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200',
+                activeTab === item.id
+                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+                  : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
+              )}
+            >
+              <Icon size={18} />
+              {!finalCollapsed && <span>{item.label}</span>}
             </button>
           );
         })}
@@ -65,23 +99,47 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, collapsed })
         {/* Settings */}
         {filteredSettingsItems.length > 0 && (
           <div>
-            <button onClick={handleSettingsClick}
-              className={cn('w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200',
-                settingsExpanded || activeTab.startsWith('settings') ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800')}>
-              <Settings size={18} /> {!collapsed && <>
-                <span>Settings</span>
-                <ChevronDown size={16} className={cn('ml-auto transition-transform duration-200', settingsExpanded && 'rotate-180')} />
-              </>}
+            <button
+              onClick={handleSettingsClick}
+              className={cn(
+                'w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200',
+                settingsExpanded || activeTab.startsWith('settings-')
+                  ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white'
+                  : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
+              )}
+            >
+              <Settings size={18} />
+              {!finalCollapsed && (
+                <>
+                  <span>Settings</span>
+                  <ChevronDown
+                    size={16}
+                    className={cn(
+                      'ml-auto transition-transform duration-200',
+                      settingsExpanded && 'rotate-180'
+                    )}
+                  />
+                </>
+              )}
             </button>
 
-            {!collapsed && settingsExpanded && (
+            {!finalCollapsed && settingsExpanded && (
               <div className="mt-2 space-y-1 pl-10">
                 {filteredSettingsItems.map(item => {
                   const Icon = item.icon;
                   return (
-                    <button key={item.id} onClick={() => handleItemClick(`settings-${item.id}`, item.path)}
-                      className={cn('w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200',
-                        activeTab === `settings-${item.id}` ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800')}>
+                    <button
+                      key={item.id}
+                      onClick={() =>
+                        handleItemClick(`settings-${item.id}`, item.path)
+                      }
+                      className={cn(
+                        'w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200',
+                        activeTab === `settings-${item.id}`
+                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+                          : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'
+                      )}
+                    >
                       <Icon size={16} /> <span>{item.label}</span>
                     </button>
                   );
