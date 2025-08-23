@@ -86,7 +86,7 @@ const AppContent: React.FC = () => {
         element={isAuthenticated ? renderLayout(SupportChatPage) : <Navigate to="/login" />}
       />
       <Route
-        path="/settings/:tab"
+        path="/settings/:activeTab"
         element={isAuthenticated ? renderLayout(SettingsPage) : <Navigate to="/login" />}
       />
 

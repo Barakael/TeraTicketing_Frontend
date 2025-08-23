@@ -67,7 +67,7 @@ export const TicketProvider: React.FC<TicketProviderProps> = ({ children }) => {
   const createTicket = async (ticketData: Partial<Ticket>) => {
     setLoading(true);
     try {
-      const res = await axios.post(`${API_BASE_URL}/api/tickets`, ticketData);
+      const res = await axios.post(`${API_BASE_URL}/api/messages`, ticketData);
       setTickets(prev => [normalizeTicket(res.data.data), ...prev]);
       toast.success('Ticket created successfully!');
     } catch (err: any) {
