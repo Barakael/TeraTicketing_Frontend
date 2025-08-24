@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { Ticket, Comment, Analytics } from "../types";
+import { Ticket, Comment, Analytics, TicketUpdateRequest } from "../types";
 import { API_BASE_URL } from "../utils/constants";
 
 interface TicketContextType {
@@ -15,7 +15,10 @@ interface TicketContextType {
   analytics: Analytics | null;
   loading: boolean;
   createTicket: (ticketData: Partial<Ticket>) => Promise<void>;
-  updateTicket: (ticketId: string, updates: Partial<Ticket>) => Promise<void>;
+  updateTicket: (
+    ticketId: string,
+    updates: TicketUpdateRequest
+  ) => Promise<void>;
   addComment: (
     ticketId: string,
     comment: {
@@ -156,7 +159,10 @@ export const TicketProvider: React.FC<TicketProviderProps> = ({ children }) => {
     }
   };
 
-  const updateTicket = async (ticketId: string, updates: Partial<Ticket>) => {
+  const updateTicket = async (
+    ticketId: string,
+    updates: TicketUpdateRequest
+  ) => {
     setLoading(true);
     try {
       const res = await axios.put(
@@ -165,7 +171,7 @@ export const TicketProvider: React.FC<TicketProviderProps> = ({ children }) => {
       );
       setTickets((prev) =>
         prev.map((t) =>
-          t.id === ticketId ? normalizeTicket(res.data.data) : t
+          t.id.toString() === ticketId ? normalizeTicket(res.data.data) : t
         )
       );
       toast.success("Ticket updated successfully!");

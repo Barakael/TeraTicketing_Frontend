@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X, Edit, Save, Calendar, Tag } from "lucide-react";
-import { Ticket } from "../../types";
+import { Ticket, TicketUpdateRequest } from "../../types";
 import { useTickets } from "../../contexts/TicketContext";
 import Button from "../ui/Button";
 import Badge from "../ui/Badge";
@@ -21,12 +21,21 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
 }) => {
   const { updateTicket } = useTickets();
   const [isEditing, setIsEditing] = useState(false);
-  const [editedTicket, setEditedTicket] = useState<Partial<Ticket>>({});
+  const [editedTicket, setEditedTicket] = useState<TicketUpdateRequest>({});
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
 
   useEffect(() => {
     if (ticket) {
-      setEditedTicket(ticket);
+      // Convert ticket to update request format
+      setEditedTicket({
+        title: ticket.title,
+        description: ticket.description,
+        category_id: ticket.category_id,
+        status_id: ticket.status_id,
+        priority_id: ticket.priority_id,
+        department_id: ticket.department_id,
+        assigned_to: ticket.assigned_to,
+      });
       setIsEditing(false);
     }
   }, [ticket]);
@@ -35,7 +44,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
     if (!ticket) return;
 
     try {
-      await updateTicket(ticket.id, editedTicket);
+      await updateTicket(ticket.id.toString(), editedTicket);
       setIsEditing(false);
     } catch (error) {
       console.error("Failed to update ticket:", error);
@@ -43,7 +52,17 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
   };
 
   const handleCancel = () => {
-    setEditedTicket(ticket || {});
+    if (ticket) {
+      setEditedTicket({
+        title: ticket.title,
+        description: ticket.description,
+        category_id: ticket.category_id,
+        status_id: ticket.status_id,
+        priority_id: ticket.priority_id,
+        department_id: ticket.department_id,
+        assigned_to: ticket.assigned_to,
+      });
+    }
     setIsEditing(false);
   };
 
@@ -143,12 +162,26 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                   {isEditing ? (
                     <textarea
                       value={editedTicket.description || ""}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        const newDescription = e.target.value;
+                        const originalDescription = ticket.description;
+
+                        // Auto-change status to "in_progress" (ID: 2) if description is being modified
+                        let newStatusId = editedTicket.status_id;
+                        if (
+                          newDescription !== originalDescription &&
+                          (editedTicket.status_id === 1 || // pending
+                            !editedTicket.status_id)
+                        ) {
+                          newStatusId = 2; // in_progress
+                        }
+
                         setEditedTicket({
                           ...editedTicket,
-                          description: e.target.value,
-                        })
-                      }
+                          description: newDescription,
+                          status_id: newStatusId,
+                        });
+                      }}
                       rows={4}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                     />
@@ -166,37 +199,36 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                   </label>
                   {isEditing ? (
                     <select
-                      value={editedTicket.priority || ticket.priority}
+                      value={
+                        editedTicket.priority_id || ticket.priority_id || ""
+                      }
                       onChange={(e) =>
                         setEditedTicket({
                           ...editedTicket,
-                          priority: e.target.value as
-                            | "low"
-                            | "medium"
-                            | "high"
-                            | "critical",
+                          priority_id: parseInt(e.target.value),
                         })
                       }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                     >
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                      <option value="critical">Critical</option>
+                      <option value="">Select Priority</option>
+                      <option value="1">Low</option>
+                      <option value="2">Medium</option>
+                      <option value="3">High</option>
+                      <option value="4">Critical</option>
                     </select>
                   ) : (
                     <Badge
                       variant={
-                        ticket.priority === "critical"
+                        ticket.priority?.name === "critical"
                           ? "danger"
-                          : ticket.priority === "high"
+                          : ticket.priority?.name === "high"
                           ? "warning"
-                          : ticket.priority === "medium"
+                          : ticket.priority?.name === "medium"
                           ? "info"
                           : "success"
                       }
                     >
-                      {ticket.priority}
+                      {ticket.priority?.name || "Unknown"}
                     </Badge>
                   )}
                 </div>
@@ -208,37 +240,35 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                   </label>
                   {isEditing ? (
                     <select
-                      value={editedTicket.status || ticket.status}
-                      onChange={(e) =>
+                      value={editedTicket.status_id || ticket.status_id || ""}
+                      onChange={(e) => {
+                        const newStatusId = parseInt(e.target.value);
                         setEditedTicket({
                           ...editedTicket,
-                          status: e.target.value as
-                            | "pending"
-                            | "in_progress"
-                            | "completed"
-                            | "closed",
-                        })
-                      }
+                          status_id: newStatusId,
+                        });
+                      }}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                     >
-                      <option value="pending">Pending</option>
-                      <option value="in_progress">In Progress</option>
-                      <option value="completed">Completed</option>
-                      <option value="closed">Closed</option>
+                      <option value="">Select Status</option>
+                      <option value="1">Pending</option>
+                      <option value="2">In Progress</option>
+                      <option value="3">Completed</option>
+                      <option value="4">Closed</option>
                     </select>
                   ) : (
                     <Badge
                       variant={
-                        ticket.status === "closed"
+                        ticket.status?.name === "closed"
                           ? "default"
-                          : ticket.status === "completed"
+                          : ticket.status?.name === "completed"
                           ? "success"
-                          : ticket.status === "in_progress"
+                          : ticket.status?.name === "in_progress"
                           ? "warning"
                           : "info"
                       }
                     >
-                      {ticket.status?.replace("_", " ") || "Unknown"}
+                      {ticket.status?.name?.replace("_", " ") || "Unknown"}
                     </Badge>
                   )}
                 </div>
@@ -274,7 +304,9 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                   </label>
                   <div className="flex items-center space-x-2">
                     <span className="text-gray-900 dark:text-white">
-                      {ticket.createdBy?.name || "Unknown"}
+                      {ticket.created_by
+                        ? `User ID: ${ticket.created_by}`
+                        : "Unknown"}
                     </span>
                   </div>
                 </div>
@@ -287,7 +319,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                   <div className="flex items-center space-x-2">
                     <Calendar size={16} className="text-gray-400" />
                     <span className="text-gray-900 dark:text-white">
-                      {formatDistanceToNow(ticket.createdAt)} ago
+                      {formatDistanceToNow(ticket.created_at)} ago
                     </span>
                   </div>
                 </div>
@@ -300,9 +332,8 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                   <div className="flex items-center space-x-2">
                     <Tag size={16} className="text-gray-400" />
                     <span className="text-gray-900 dark:text-white">
-                      {typeof ticket.department === "string"
-                        ? ticket.department
-                        : (ticket.department as any)?.name || "Unknown"}
+                      {ticket.department?.name ||
+                        `Department ID: ${ticket.department_id}`}
                     </span>
                   </div>
                 </div>
@@ -315,9 +346,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                   <div className="flex items-center space-x-2">
                     <Tag size={16} className="text-gray-400" />
                     <span className="text-gray-900 dark:text-white">
-                      {typeof ticket.category === "string"
-                        ? ticket.category
-                        : (ticket.category as any)?.name || "Unknown"}
+                      {ticket.category?.name || "Unknown"}
                     </span>
                   </div>
                 </div>
@@ -327,7 +356,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
             {/* Comments Section */}
             <div className="mt-8">
               <TicketComments
-                ticketId={ticket.id}
+                ticketId={ticket.id.toString()}
                 comments={ticket.comments || []}
                 onCommentAdded={() => {
                   // Refresh ticket data after comment is added
@@ -343,9 +372,12 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
       <TicketAssignmentModal
         isOpen={showAssignmentModal}
         onClose={() => setShowAssignmentModal(false)}
-        ticketId={ticket.id}
+        ticketId={ticket.id.toString()}
         currentAssignee={ticket.assignedTo}
-        ticketDepartment={{ id: ticket.department, name: ticket.department }}
+        ticketDepartment={{
+          id: ticket.department_id.toString(),
+          name: ticket.department?.name || `Department ${ticket.department_id}`,
+        }}
       />
     </>
   );

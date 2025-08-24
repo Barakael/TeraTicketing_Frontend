@@ -11,6 +11,7 @@ import Modal from "../components/ui/Modal";
 import PreTicketChatbot from "../components/chat/PreTicketChatbot";
 import TicketTable from "../components/tickets/TicketTable";
 import Pagination from "../components/ui/Pagination";
+import TicketMergeModal from "../components/tickets/TicketMergeModal";
 import { toast } from "react-hot-toast";
 
 const ITEMS_PER_PAGE = 9;
@@ -38,6 +39,7 @@ const TicketsPage: React.FC = () => {
   const [showChatbot, setShowChatbot] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [showTicketDetail, setShowTicketDetail] = useState(false);
+  const [showMergeModal, setShowMergeModal] = useState(false);
 
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [currentPage, setCurrentPage] = useState(1);
@@ -102,11 +104,15 @@ const TicketsPage: React.FC = () => {
 
   const handleMerge = () => {
     if (selectedTickets.length === 2) {
-      mergeTickets(selectedTickets[0], selectedTickets[1]);
-      setSelectedTickets([]);
+      setShowMergeModal(true);
     } else {
       toast.error("Please select exactly two tickets to merge.");
     }
+  };
+
+  const handleMergeComplete = () => {
+    setSelectedTickets([]);
+    setShowMergeModal(false);
   };
 
   const handleTicketCreate = async (chatbotData: PreTicketData) => {
@@ -283,6 +289,13 @@ const TicketsPage: React.FC = () => {
           setShowTicketDetail(false);
           setSelectedTicket(null);
         }}
+      />
+
+      <TicketMergeModal
+        isOpen={showMergeModal}
+        onClose={() => setShowMergeModal(false)}
+        selectedTickets={tickets.filter(t => selectedTickets.includes(t.id))}
+        onMergeComplete={handleMergeComplete}
       />
     </div>
   );
