@@ -1,7 +1,7 @@
-import React from 'react';
-import { Filter, Download, Merge } from 'lucide-react';
-import Button from '../ui/Button';
-import { cn } from '../../utils/cn';
+import React from "react";
+import { Filter, Download, Merge } from "lucide-react";
+import Button from "../ui/Button";
+import { cn } from "../../utils/cn";
 
 interface TicketFiltersProps {
   filters: {
@@ -12,7 +12,7 @@ interface TicketFiltersProps {
     dateRange: string;
   };
   onFilterChange: (filters: any) => void;
-  onExport: (format: 'pdf' | 'excel') => void;
+  onExport: (format: "pdf" | "excel") => void;
   onMerge: () => void;
   selectedCount: number;
 }
@@ -25,27 +25,27 @@ const TicketFilters: React.FC<TicketFiltersProps> = ({
   selectedCount,
 }) => {
   const statusOptions = [
-    { value: '', label: 'All Status' },
-    { value: 'pending', label: 'Pending' },
-    { value: 'in_progress', label: 'In Progress' },
-    { value: 'completed', label: 'Completed' },
-    { value: 'closed', label: 'Closed' },
+    { value: "", label: "All Status" },
+    { value: "pending", label: "Pending" },
+    { value: "in_progress", label: "In Progress" },
+    { value: "completed", label: "Completed" },
+    { value: "closed", label: "Closed" },
   ];
 
   const priorityOptions = [
-    { value: '', label: 'All Priority' },
-    { value: 'low', label: 'Low' },
-    { value: 'medium', label: 'Medium' },
-    { value: 'high', label: 'High' },
-    { value: 'critical', label: 'Critical' },
+    { value: "", label: "All Priority" },
+    { value: "low", label: "Low" },
+    { value: "medium", label: "Medium" },
+    { value: "high", label: "High" },
+    { value: "critical", label: "Critical" },
   ];
 
   const departmentOptions = [
-    { value: '', label: 'All Departments' },
-    { value: 'software department', label: 'software department' },
-    { value: 'HR', label: 'HR' },
-    { value: 'Finance', label: 'Finance' },
-    { value: 'Operations', label: 'Operations' },
+    { value: "", label: "All Departments" },
+    { value: "software department", label: "software department" },
+    { value: "HR", label: "HR" },
+    { value: "Finance", label: "Finance" },
+    { value: "Operations", label: "Operations" },
   ];
 
   const handleFilterChange = (key: string, value: string) => {
@@ -60,12 +60,14 @@ const TicketFilters: React.FC<TicketFiltersProps> = ({
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex items-center space-x-2">
           <Filter size={18} className="text-gray-500" />
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filters:</span>
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Filters:
+          </span>
         </div>
 
         <select
           value={filters.status}
-          onChange={(e) => handleFilterChange('status', e.target.value)}
+          onChange={(e) => handleFilterChange("status", e.target.value)}
           className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
         >
           {statusOptions.map((option) => (
@@ -77,7 +79,7 @@ const TicketFilters: React.FC<TicketFiltersProps> = ({
 
         <select
           value={filters.priority}
-          onChange={(e) => handleFilterChange('priority', e.target.value)}
+          onChange={(e) => handleFilterChange("priority", e.target.value)}
           className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
         >
           {priorityOptions.map((option) => (
@@ -89,7 +91,7 @@ const TicketFilters: React.FC<TicketFiltersProps> = ({
 
         <select
           value={filters.department}
-          onChange={(e) => handleFilterChange('department', e.target.value)}
+          onChange={(e) => handleFilterChange("department", e.target.value)}
           className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
         >
           {departmentOptions.map((option) => (
@@ -98,8 +100,6 @@ const TicketFilters: React.FC<TicketFiltersProps> = ({
             </option>
           ))}
         </select>
-
-      
 
         <div className="flex items-center space-x-2 ml-auto">
           {selectedCount > 0 && (
@@ -123,7 +123,7 @@ const TicketFilters: React.FC<TicketFiltersProps> = ({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onExport('pdf')}
+              onClick={() => onExport("pdf")}
               icon={<Download size={16} />}
             >
               PDF
@@ -131,7 +131,7 @@ const TicketFilters: React.FC<TicketFiltersProps> = ({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onExport('excel')}
+              onClick={() => onExport("excel")}
               icon={<Download size={16} />}
             >
               Excel
