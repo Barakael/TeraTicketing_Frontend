@@ -398,46 +398,60 @@ export const TicketProvider: React.FC<TicketProviderProps> = ({ children }) => {
       if (filters.priority) params.append("priority", filters.priority);
       if (filters.department) params.append("department", filters.department);
       if (filters.assignedTo) params.append("assigned_to", filters.assignedTo);
-      
+
       // Handle date filtering - check for individual startDate/endDate first, then dateRange
       if (filters.startDate) params.append("start_date", filters.startDate);
       if (filters.endDate) params.append("end_date", filters.endDate);
-      
+
       // If no individual dates but dateRange is set, try to parse it
       if (!filters.startDate && !filters.endDate && filters.dateRange) {
         if (filters.dateRange === "today") {
-          const today = new Date().toISOString().split('T')[0];
+          const today = new Date().toISOString().split("T")[0];
           params.append("start_date", today);
           params.append("end_date", today);
         } else if (filters.dateRange === "yesterday") {
-          const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+          const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split("T")[0];
           params.append("start_date", yesterday);
           params.append("end_date", yesterday);
         } else if (filters.dateRange === "last_7_days") {
-          const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-          const today = new Date().toISOString().split('T')[0];
+          const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split("T")[0];
+          const today = new Date().toISOString().split("T")[0];
           params.append("start_date", sevenDaysAgo);
           params.append("end_date", today);
         } else if (filters.dateRange === "last_30_days") {
-          const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-          const today = new Date().toISOString().split('T')[0];
+          const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split("T")[0];
+          const today = new Date().toISOString().split("T")[0];
           params.append("start_date", thirtyDaysAgo);
           params.append("end_date", today);
         } else if (filters.dateRange === "this_month") {
           const now = new Date();
-          const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-          const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+          const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+            .toISOString()
+            .split("T")[0];
+          const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+            .toISOString()
+            .split("T")[0];
           params.append("start_date", firstDay);
           params.append("end_date", lastDay);
         } else if (filters.dateRange === "last_month") {
           const now = new Date();
-          const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0];
-          const lastDay = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
+          const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+            .toISOString()
+            .split("T")[0];
+          const lastDay = new Date(now.getFullYear(), now.getMonth(), 0)
+            .toISOString()
+            .split("T")[0];
           params.append("start_date", firstDay);
           params.append("end_date", lastDay);
         }
       }
-      
+
       if (filters.searchQuery) params.append("search", filters.searchQuery);
 
       console.log("Filtering tickets with params:", params.toString());
@@ -455,10 +469,14 @@ export const TicketProvider: React.FC<TicketProviderProps> = ({ children }) => {
       console.error("Error filtering tickets:", error);
       // Fallback to client-side filtering if API fails
       return tickets.filter((ticket) => {
-        if (filters.status && ticket.status?.name !== filters.status) return false;
+        if (filters.status && ticket.status?.name !== filters.status)
+          return false;
         if (filters.priority && ticket.priority?.name !== filters.priority)
           return false;
-        if (filters.department && ticket.department_id?.toString() !== filters.department)
+        if (
+          filters.department &&
+          ticket.department_id?.toString() !== filters.department
+        )
           return false;
         if (filters.assignedTo && ticket.assignedTo?.id !== filters.assignedTo)
           return false;
