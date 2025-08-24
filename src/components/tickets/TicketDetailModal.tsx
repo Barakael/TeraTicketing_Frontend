@@ -71,13 +71,18 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
   return (
     <>
       <div
-        className={`fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 ${
-          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-        } transition-opacity duration-300`}
+        className={`fixed inset-0 z-50 flex items-center justify-center p-6 transition-all duration-300 ${
+          isOpen
+            ? "opacity-100 backdrop-blur-sm"
+            : "opacity-0 pointer-events-none"
+        }`}
+        style={{
+          background: "rgba(0, 0, 0, 0.7)",
+        }}
         onClick={onClose}
       >
         <div
-          className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
+          className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-6xl w-full max-h-[80vh] overflow-hidden border border-gray-200 dark:border-gray-700 animate-scaleIn"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -125,7 +130,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
           </div>
 
           {/* Content */}
-          <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+          <div className="p-6 overflow-y-auto max-h-[calc(80vh-120px)]">
             {/* Ticket Information */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Left Column */}

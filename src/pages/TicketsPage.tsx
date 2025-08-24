@@ -34,6 +34,8 @@ const TicketsPage: React.FC = () => {
     department: "",
     assignedTo: "",
     dateRange: "",
+    startDate: "",
+    endDate: "",
   });
   const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
   const [showChatbot, setShowChatbot] = useState(false);
@@ -44,19 +46,44 @@ const TicketsPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Fixed: Use the correct function signatures
-  const displayedTickets = useMemo(() => {
-    let filtered = tickets;
+  const [displayedTickets, setDisplayedTickets] = useState<Ticket[]>([]);
 
-    // Apply search filter
-    if (searchQuery) {
-      filtered = searchTickets(searchQuery);
-    }
+  // Fetch filtered tickets when filters or search query changes
+  useEffect(() => {
+    const fetchFilteredTickets = async () => {
+      try {
+        console.log("Fetching filtered tickets with filters:", filters);
+        console.log("Search query:", searchQuery);
+        
+        let filtered = tickets;
 
-    // Apply other filters
-    filtered = filterTickets(filters);
+        // Apply search filter first
+        if (searchQuery) {
+          filtered = searchTickets(searchQuery);
+        }
 
-    return filtered;
+        // Apply API-based filters
+        const apiFilters = {
+          ...filters,
+          searchQuery: searchQuery,
+        };
+
+        console.log("API filters:", apiFilters);
+        const apiFiltered = await filterTickets(apiFilters);
+        console.log("API filtered results:", apiFiltered.length, "tickets");
+        setDisplayedTickets(apiFiltered);
+      } catch (error) {
+        console.error("Error fetching filtered tickets:", error);
+        // Fallback to client-side filtering
+        let filtered = tickets;
+        if (searchQuery) {
+          filtered = searchTickets(searchQuery);
+        }
+        setDisplayedTickets(filtered);
+      }
+    };
+
+    fetchFilteredTickets();
   }, [searchQuery, filters, tickets, searchTickets, filterTickets]);
 
   // Reset to page 1 whenever filters change
@@ -82,10 +109,11 @@ const TicketsPage: React.FC = () => {
     if ("stopPropagation" in event) {
       event.stopPropagation();
     }
+    const ticketId = ticket.id.toString();
     setSelectedTickets((prev) =>
-      prev.includes(ticket.id)
-        ? prev.filter((id) => id !== ticket.id)
-        : [...prev, ticket.id]
+      prev.includes(ticketId)
+        ? prev.filter((id) => id !== ticketId)
+        : [...prev, ticketId]
     );
   };
 
@@ -94,7 +122,7 @@ const TicketsPage: React.FC = () => {
       const ticketsToExport =
         selectedTickets.length > 0
           ? selectedTickets
-          : displayedTickets.map((t) => t.id);
+          : displayedTickets.map((t) => t.id.toString());
       await exportTickets(format, ticketsToExport);
       toast.success(`${format.toUpperCase()} export completed successfully!`);
     } catch {
@@ -125,7 +153,9 @@ const TicketsPage: React.FC = () => {
         (chatbotData.priority as "low" | "medium" | "high" | "critical") ||
         "medium",
       department: chatbotData.department || "",
-      category: chatbotData.category || "",
+      category_id: chatbotData.category
+        ? parseInt(chatbotData.category)
+        : undefined,
       assignedTo: undefined,
       createdBy: {
         id: user.id,
@@ -233,7 +263,7 @@ const TicketsPage: React.FC = () => {
                       ticket={ticket}
                       onClick={handleTicketClick}
                       onSelect={handleTicketSelect}
-                      selected={selectedTickets.includes(ticket.id)}
+                      selected={selectedTickets.includes(ticket.id.toString())}
                     />
                   ))}
                 </div>
@@ -294,7 +324,9 @@ const TicketsPage: React.FC = () => {
       <TicketMergeModal
         isOpen={showMergeModal}
         onClose={() => setShowMergeModal(false)}
-        selectedTickets={tickets.filter(t => selectedTickets.includes(t.id))}
+        selectedTickets={tickets.filter((t) =>
+          selectedTickets.includes(t.id.toString())
+        )}
         onMergeComplete={handleMergeComplete}
       />
     </div>

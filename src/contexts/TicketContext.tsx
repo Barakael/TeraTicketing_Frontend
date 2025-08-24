@@ -33,8 +33,10 @@ interface TicketContextType {
     format: "pdf" | "excel",
     ticketIds: string[]
   ) => Promise<void>;
-  filterTickets: (filters: any) => Ticket[];
+  filterTickets: (filters: any) => Promise<Ticket[]>;
   searchTickets: (query: string) => Ticket[];
+  fetchFilteredTickets: (filters: any) => Promise<void>;
+  fetchAnalytics: () => Promise<void>;
 }
 
 const TicketContext = createContext<TicketContextType | undefined>(undefined);
@@ -213,15 +215,35 @@ export const TicketProvider: React.FC<TicketProviderProps> = ({ children }) => {
 
   const mergeTickets = async (primaryId: string, secondaryId: string) => {
     try {
-      await axios.post(`${API_BASE_URL}/api/tickets/merge`, {
+      console.log("Attempting to merge tickets:", { primaryId, secondaryId });
+      const response = await axios.post(`${API_BASE_URL}/api/tickets/merge`, {
         primaryTicketId: primaryId,
         secondaryTicketId: secondaryId,
       });
+      console.log("Merge response:", response.data);
       toast.success("Tickets merged successfully!");
       fetchTickets(); // Refresh tickets
     } catch (err: any) {
       console.error("Error merging tickets:", err);
-      toast.error("Failed to merge tickets.");
+      if (err.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        console.error("Error response:", err.response.data);
+        console.error("Error status:", err.response.status);
+        toast.error(
+          `Failed to merge tickets: ${
+            err.response.data?.message || err.response.statusText
+          }`
+        );
+      } else if (err.request) {
+        // The request was made but no response was received
+        console.error("No response received:", err.request);
+        toast.error("Failed to merge tickets: No response from server");
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.error("Error setting up request:", err.message);
+        toast.error("Failed to merge tickets: Network error");
+      }
     }
   };
 
@@ -367,17 +389,182 @@ export const TicketProvider: React.FC<TicketProviderProps> = ({ children }) => {
     }
   };
 
-  const filterTickets = (filters: any): Ticket[] => {
-    return tickets.filter((ticket) => {
-      if (filters.status && ticket.status !== filters.status) return false;
-      if (filters.priority && ticket.priority !== filters.priority)
-        return false;
-      if (filters.department && ticket.department !== filters.department)
-        return false;
-      if (filters.assignedTo && ticket.assignedTo?.id !== filters.assignedTo)
-        return false;
-      return true;
+  const filterTickets = async (filters: any): Promise<Ticket[]> => {
+    try {
+      // Build query parameters
+      const params = new URLSearchParams();
+
+      if (filters.status) params.append("status", filters.status);
+      if (filters.priority) params.append("priority", filters.priority);
+      if (filters.department) params.append("department", filters.department);
+      if (filters.assignedTo) params.append("assigned_to", filters.assignedTo);
+      
+      // Handle date filtering - check for individual startDate/endDate first, then dateRange
+      if (filters.startDate) params.append("start_date", filters.startDate);
+      if (filters.endDate) params.append("end_date", filters.endDate);
+      
+      // If no individual dates but dateRange is set, try to parse it
+      if (!filters.startDate && !filters.endDate && filters.dateRange) {
+        if (filters.dateRange === "today") {
+          const today = new Date().toISOString().split('T')[0];
+          params.append("start_date", today);
+          params.append("end_date", today);
+        } else if (filters.dateRange === "yesterday") {
+          const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+          params.append("start_date", yesterday);
+          params.append("end_date", yesterday);
+        } else if (filters.dateRange === "last_7_days") {
+          const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+          const today = new Date().toISOString().split('T')[0];
+          params.append("start_date", sevenDaysAgo);
+          params.append("end_date", today);
+        } else if (filters.dateRange === "last_30_days") {
+          const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+          const today = new Date().toISOString().split('T')[0];
+          params.append("start_date", thirtyDaysAgo);
+          params.append("end_date", today);
+        } else if (filters.dateRange === "this_month") {
+          const now = new Date();
+          const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+          const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+          params.append("start_date", firstDay);
+          params.append("end_date", lastDay);
+        } else if (filters.dateRange === "last_month") {
+          const now = new Date();
+          const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0];
+          const lastDay = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
+          params.append("start_date", firstDay);
+          params.append("end_date", lastDay);
+        }
+      }
+      
+      if (filters.searchQuery) params.append("search", filters.searchQuery);
+
+      console.log("Filtering tickets with params:", params.toString());
+
+      const response = await axios.get(
+        `${API_BASE_URL}/api/tickets?${params.toString()}`
+      );
+
+      if (response.data && response.data.data) {
+        return response.data.data.map((ticket: any) => normalizeTicket(ticket));
+      }
+
+      return [];
+    } catch (error) {
+      console.error("Error filtering tickets:", error);
+      // Fallback to client-side filtering if API fails
+      return tickets.filter((ticket) => {
+        if (filters.status && ticket.status?.name !== filters.status) return false;
+        if (filters.priority && ticket.priority?.name !== filters.priority)
+          return false;
+        if (filters.department && ticket.department_id?.toString() !== filters.department)
+          return false;
+        if (filters.assignedTo && ticket.assignedTo?.id !== filters.assignedTo)
+          return false;
+        return true;
+      });
+    }
+  };
+
+  const fetchFilteredTickets = async (filters: any): Promise<void> => {
+    setLoading(true);
+    try {
+      const filteredTickets = await filterTickets(filters);
+      setTickets(filteredTickets);
+    } catch (error) {
+      console.error("Error fetching filtered tickets:", error);
+      toast.error("Failed to fetch filtered tickets");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAnalytics = async (): Promise<void> => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/analytics`);
+
+      if (response.data && response.data.data) {
+        setAnalytics(response.data.data);
+      } else {
+        // Fallback: calculate analytics from tickets data
+        const calculatedAnalytics = calculateAnalyticsFromTickets(tickets);
+        setAnalytics(calculatedAnalytics);
+      }
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+      // Fallback: calculate analytics from tickets data
+      const calculatedAnalytics = calculateAnalyticsFromTickets(tickets);
+      setAnalytics(calculatedAnalytics);
+    }
+  };
+
+  const calculateAnalyticsFromTickets = (tickets: Ticket[]): Analytics => {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    // Calculate basic metrics
+    const totalTickets = tickets.length;
+    const openTickets = tickets.filter(
+      (t) => t.status?.name === "pending" || t.status?.name === "in_progress"
+    ).length;
+    const closedTickets = tickets.filter(
+      (t) => t.status?.name === "completed" || t.status?.name === "closed"
+    ).length;
+
+    // Calculate tickets by priority
+    const ticketsByPriority: Record<string, number> = {};
+    tickets.forEach((ticket) => {
+      const priority = ticket.priority?.name || "unknown";
+      ticketsByPriority[priority] = (ticketsByPriority[priority] || 0) + 1;
     });
+
+    // Calculate tickets by status
+    const ticketsByStatus: Record<string, number> = {};
+    tickets.forEach((ticket) => {
+      const status = ticket.status?.name || "unknown";
+      ticketsByStatus[status] = (ticketsByStatus[status] || 0) + 1;
+    });
+
+    // Calculate workload distribution
+    const workloadDistribution: Record<string, number> = {};
+    tickets.forEach((ticket) => {
+      if (ticket.assignedTo?.name) {
+        workloadDistribution[ticket.assignedTo.name] =
+          (workloadDistribution[ticket.assignedTo.name] || 0) + 1;
+      }
+    });
+
+    // Calculate average resolution time (simplified)
+    const resolvedTickets = tickets.filter(
+      (t) => t.status?.name === "completed" || t.status?.name === "closed"
+    );
+    const totalResolutionTime = resolvedTickets.reduce((sum, ticket) => {
+      const created = new Date(ticket.created_at);
+      const updated = new Date(ticket.updated_at);
+      return sum + (updated.getTime() - created.getTime());
+    }, 0);
+    const averageResolutionTime =
+      resolvedTickets.length > 0
+        ? Math.round(
+            totalResolutionTime / resolvedTickets.length / (1000 * 60 * 60)
+          ) // hours
+        : 0;
+
+    // Calculate resolution rate
+    const resolutionRate =
+      totalTickets > 0 ? Math.round((closedTickets / totalTickets) * 100) : 0;
+
+    return {
+      totalTickets,
+      openTickets,
+      closedTickets,
+      averageResolutionTime,
+      ticketsByPriority,
+      ticketsByStatus,
+      resolutionRate,
+      workloadDistribution,
+    };
   };
 
   const searchTickets = (query: string): Ticket[] => {
@@ -403,6 +590,8 @@ export const TicketProvider: React.FC<TicketProviderProps> = ({ children }) => {
         exportTickets,
         filterTickets,
         searchTickets,
+        fetchFilteredTickets,
+        fetchAnalytics,
       }}
     >
       {children}

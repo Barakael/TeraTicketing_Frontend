@@ -31,7 +31,11 @@ const TicketMergeModal: React.FC<TicketMergeModalProps> = ({
     setIsMerging(true);
     try {
       // Use the first ticket as primary, second as secondary
-      await mergeTickets(selectedTickets[0].id, selectedTickets[1].id);
+      // Convert number IDs to strings as expected by the API
+      await mergeTickets(
+        selectedTickets[0].id.toString(),
+        selectedTickets[1].id.toString()
+      );
       toast.success("Tickets merged successfully!");
       onMergeComplete();
       onClose();
@@ -55,14 +59,18 @@ const TicketMergeModal: React.FC<TicketMergeModalProps> = ({
         {/* Warning */}
         <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
           <div className="flex items-center space-x-2">
-            <AlertTriangle size={20} className="text-yellow-600 dark:text-yellow-400" />
+            <AlertTriangle
+              size={20}
+              className="text-yellow-600 dark:text-yellow-400"
+            />
             <span className="text-yellow-800 dark:text-yellow-200 font-medium">
               Merge Confirmation
             </span>
           </div>
           <p className="text-yellow-700 dark:text-yellow-300 mt-2 text-sm">
-            This action will merge the secondary ticket into the primary ticket. 
-            The secondary ticket will be deleted and all its data will be transferred to the primary ticket.
+            This action will merge the secondary ticket into the primary ticket.
+            The secondary ticket will be deleted and all its data will be
+            transferred to the primary ticket.
           </p>
         </div>
 
@@ -71,15 +79,39 @@ const TicketMergeModal: React.FC<TicketMergeModalProps> = ({
           {/* Primary Ticket */}
           <div className="border border-blue-200 dark:border-blue-800 rounded-lg p-4 bg-blue-50 dark:bg-blue-900/20">
             <div className="flex items-center space-x-2 mb-3">
-              <CheckCircle size={16} className="text-blue-600 dark:text-blue-400" />
-              <span className="font-medium text-blue-900 dark:text-blue-100">Primary Ticket (Will Remain)</span>
+              <CheckCircle
+                size={16}
+                className="text-blue-600 dark:text-blue-400"
+              />
+              <span className="font-medium text-blue-900 dark:text-blue-100">
+                Primary Ticket (Will Remain)
+              </span>
             </div>
             <div className="space-y-2 text-sm">
-              <div><strong>ID:</strong> #{primaryTicket.id}</div>
-              <div><strong>Title:</strong> {primaryTicket.title}</div>
-              <div><strong>Priority:</strong> {primaryTicket.priority}</div>
-              <div><strong>Status:</strong> {primaryTicket.status}</div>
-              <div><strong>Department:</strong> {typeof primaryTicket.department === 'string' ? primaryTicket.department : (primaryTicket.department as any)?.name || 'N/A'}</div>
+              <div>
+                <strong>ID:</strong> #{primaryTicket.id}
+              </div>
+              <div>
+                <strong>Title:</strong> {primaryTicket.title}
+              </div>
+              <div>
+                <strong>Priority:</strong>{" "}
+                {typeof primaryTicket.priority === "string"
+                  ? primaryTicket.priority
+                  : (primaryTicket.priority as any)?.name || "N/A"}
+              </div>
+              <div>
+                <strong>Status:</strong>{" "}
+                {typeof primaryTicket.status === "string"
+                  ? primaryTicket.status
+                  : (primaryTicket.status as any)?.name || "N/A"}
+              </div>
+              <div>
+                <strong>Department:</strong>{" "}
+                {typeof primaryTicket.department === "string"
+                  ? primaryTicket.department
+                  : (primaryTicket.department as any)?.name || "N/A"}
+              </div>
             </div>
           </div>
 
@@ -87,21 +119,44 @@ const TicketMergeModal: React.FC<TicketMergeModalProps> = ({
           <div className="border border-red-200 dark:border-red-800 rounded-lg p-4 bg-red-50 dark:bg-red-900/20">
             <div className="flex items-center space-x-2 mb-3">
               <X size={16} className="text-red-600 dark:text-red-400" />
-              <span className="font-medium text-red-900 dark:text-red-100">Secondary Ticket (Will Be Deleted)</span>
+              <span className="font-medium text-red-900 dark:text-red-100">
+                Secondary Ticket (Will Be Deleted)
+              </span>
             </div>
             <div className="space-y-2 text-sm">
-              <div><strong>ID:</strong> #{secondaryTicket.id}</div>
-              <div><strong>Title:</strong> {secondaryTicket.title}</div>
-              <div><strong>Priority:</strong> {secondaryTicket.priority}</div>
-              <div><strong>Status:</strong> {secondaryTicket.status}</div>
-              <div><strong>Department:</strong> {typeof secondaryTicket.department === 'string' ? secondaryTicket.department : (secondaryTicket.department as any)?.name || 'N/A'}</div>
+              <div>
+                <strong>ID:</strong> #{secondaryTicket.id}
+              </div>
+              <div>
+                <strong>Title:</strong> {secondaryTicket.title}
+              </div>
+              <div>
+                <strong>Priority:</strong>{" "}
+                {typeof secondaryTicket.priority === "string"
+                  ? secondaryTicket.priority
+                  : (secondaryTicket.priority as any)?.name || "N/A"}
+              </div>
+              <div>
+                <strong>Status:</strong>{" "}
+                {typeof secondaryTicket.status === "string"
+                  ? secondaryTicket.status
+                  : (secondaryTicket.status as any)?.name || "N/A"}
+              </div>
+              <div>
+                <strong>Department:</strong>{" "}
+                {typeof secondaryTicket.department === "string"
+                  ? secondaryTicket.department
+                  : (secondaryTicket.department as any)?.name || "N/A"}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Merge Strategy Info */}
         <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-          <h4 className="font-medium text-gray-900 dark:text-white mb-2">Merge Strategy</h4>
+          <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+            Merge Strategy
+          </h4>
           <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
             <li>• Primary ticket will remain as the main ticket</li>
             <li>• Secondary ticket will be deleted</li>

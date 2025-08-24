@@ -44,9 +44,9 @@ export const API_BASE_URL = 'http://127.0.0.1:8000';
 export const API_ENDPOINTS = {
   LOGIN: '${API_BASE_URL}/api/auth/login',
   LOGOUT: '${API_BASE_URL}/api/auth/logout',
-  TICKETS: '${API_BASE_URl}/api/tickets',
-  USERS: '${API_BASE_URl}/api/users',
-  COMMENTS: '${API_BASE_URl}/api/comments',
-  ANALYTICS: '${API_BASE_URl}/api/analytics',
-  EXPORT: '${API_BASE_URl}/api/export',
+  TICKETS: '${API_BASE_URL}/api/tickets',
+  USERS: '${API_BASE_URL}/api/users',
+  COMMENTS: '${API_BASE_URL}/api/comments',
+  ANALYTICS: '${API_BASE_URL}/api/analytics',
+  EXPORT: '${API_BASE_URL}/api/export',
 };

@@ -1,7 +1,10 @@
-import React from "react";
-import { Filter, Download, Merge } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Filter, Download, Merge, Calendar } from "lucide-react";
 import Button from "../ui/Button";
 import { cn } from "../../utils/cn";
+import axios from "axios";
+import { API_BASE_URL } from "../../utils/constants";
+import { Department } from "../../types";
 
 interface TicketFiltersProps {
   filters: {
@@ -10,6 +13,8 @@ interface TicketFiltersProps {
     department: string;
     assignedTo: string;
     dateRange: string;
+    startDate?: string;
+    endDate?: string;
   };
   onFilterChange: (filters: any) => void;
   onExport: (format: "pdf" | "excel") => void;
@@ -24,6 +29,25 @@ const TicketFilters: React.FC<TicketFiltersProps> = ({
   onMerge,
   selectedCount,
 }) => {
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Fetch departments from API
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/api/departments`);
+        if (response.data && response.data.data) {
+          setDepartments(response.data.data);
+        }
+      } catch (error) {
+        console.error("Error fetching departments:", error);
+      }
+    };
+
+    fetchDepartments();
+  }, []);
+
   const statusOptions = [
     { value: "", label: "All Status" },
     { value: "pending", label: "Pending" },
@@ -40,19 +64,25 @@ const TicketFilters: React.FC<TicketFiltersProps> = ({
     { value: "critical", label: "Critical" },
   ];
 
-  const departmentOptions = [
-    { value: "", label: "All Departments" },
-    { value: "software department", label: "software department" },
-    { value: "HR", label: "HR" },
-    { value: "Finance", label: "Finance" },
-    { value: "Operations", label: "Operations" },
+  const dateRangeOptions = [
+    { value: "", label: "All Time" },
+    { value: "today", label: "Today" },
+    { value: "yesterday", label: "Yesterday" },
+    { value: "last_7_days", label: "Last 7 Days" },
+    { value: "last_30_days", label: "Last 30 Days" },
+    { value: "this_month", label: "This Month" },
+    { value: "last_month", label: "Last Month" },
+    { value: "custom", label: "Custom Range" },
   ];
 
   const handleFilterChange = (key: string, value: string) => {
-    onFilterChange({
+    console.log(`Filter changed: ${key} = ${value}`);
+    const newFilters = {
       ...filters,
       [key]: value,
-    });
+    };
+    console.log("New filters:", newFilters);
+    onFilterChange(newFilters);
   };
 
   return (
@@ -94,12 +124,43 @@ const TicketFilters: React.FC<TicketFiltersProps> = ({
           onChange={(e) => handleFilterChange("department", e.target.value)}
           className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
         >
-          {departmentOptions.map((option) => (
+          <option value="">All Departments</option>
+          {departments.map((dept) => (
+            <option key={dept.id} value={dept.id.toString()}>
+              {dept.name}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={filters.dateRange}
+          onChange={(e) => handleFilterChange("dateRange", e.target.value)}
+          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+        >
+          {dateRangeOptions.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>
           ))}
         </select>
+
+        {filters.dateRange === "custom" && (
+          <div className="flex items-center space-x-2">
+            <input
+              type="date"
+              value={filters.startDate || ""}
+              onChange={(e) => handleFilterChange("startDate", e.target.value)}
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+            />
+            <span className="text-gray-500">to</span>
+            <input
+              type="date"
+              value={filters.endDate || ""}
+              onChange={(e) => handleFilterChange("endDate", e.target.value)}
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+            />
+          </div>
+        )}
 
         <div className="flex items-center space-x-2 ml-auto">
           {selectedCount > 0 && (
