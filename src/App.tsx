@@ -66,14 +66,14 @@ const AppContent: React.FC = () => {
   }
 
   const renderLayout = (PageComponent: React.FC) => (
-    <div className="h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 flex transition-all duration-500 ease-in-out">
+    <div className="h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 flex transition-all duration-5000 ease-in-out">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-500/15 to-purple-500/15 dark:from-blue-400/8 dark:to-purple-400/8 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-indigo-500/15 to-pink-500/15 dark:from-indigo-400/8 dark:to-pink-400/8 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 dark:from-cyan-400/5 dark:to-blue-400/5 rounded-full blur-3xl animate-pulse delay-500"></div>
-        <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-gradient-to-br from-emerald-500/8 to-teal-500/8 dark:from-emerald-400/4 dark:to-teal-400/4 rounded-full blur-2xl animate-pulse delay-700"></div>
-        <div className="absolute bottom-1/4 left-1/4 w-48 h-48 bg-gradient-to-tr from-rose-500/8 to-pink-500/8 dark:from-rose-400/4 dark:to-pink-400/4 rounded-full blur-2xl animate-pulse delay-300"></div>
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-700/50 to-purple-600/55 dark:from-blue-600/30 dark:to-purple-400/8 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-[400px] h-[400px] bg-gradient-to-tr from-indigo-500/45 to-indigo-500/45 dark:from-indigo-400/30 dark:to-pink-400/38 rounded-full blur-3xl animate-pulse delay-4000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-cyan-700/20 to-blue-600/20 dark:from-cyan-600/20 dark:to-blue-400/15 rounded-full blur-3xl animate-pulse delay-3000"></div>
+        <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-gradient-to-br from-emerald-500/8 to-teal-500/8 dark:from-emerald-400/4 dark:to-teal-400/4 rounded-full blur-2xl animate-pulse delay-3000"></div>
+        <div className="absolute bottom-1/4 left-1/4 w-48 h-48 bg-gradient-to-tr from-rose-500/8 to-pink-500/8 dark:from-rose-400/4 dark:to-pink-400/4 rounded-full blur-2xl animate-pulse delay-3000"></div>
       </div>
 
       <Sidebar
