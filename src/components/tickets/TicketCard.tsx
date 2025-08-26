@@ -59,7 +59,7 @@ const TicketCard: React.FC<TicketCardProps> = ({
   const getPriorityIcon = (priority: string) => {
     const icons: Record<string, string> = {
       low: "🟢",
-      medium: "🟡",
+      medium: "🟡 ",
       high: "🟠",
       critical: "🔴",
     };
