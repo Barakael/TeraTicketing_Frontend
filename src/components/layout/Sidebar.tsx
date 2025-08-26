@@ -142,12 +142,12 @@ const Sidebar: React.FC<SidebarProps> = ({
   return (
     <div
       className={cn(
-        "h-full bg-gray-100 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-300",
+        "h-full bg-gray-100 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-300",
         finalCollapsed ? "w-20" : "w-64"
       )}
     >
       {/* Logo */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-center">
+      <div className="p-4 border-bflex justify-center">
         {!finalCollapsed && (
           <img
             src="https://teratech.co.tz/assets/logo-4eACH_FU.png"
@@ -168,7 +168,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 "w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200",
                 activeTab === item.id
                   ? "bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400"
-                  : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                  : "text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600"
               )}
             >
               <Icon size={18} />
