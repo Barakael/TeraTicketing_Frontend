@@ -149,24 +149,20 @@ const TicketsPage: React.FC = () => {
     const payload = {
       title: chatbotData.description || "New Ticket",
       description: chatbotData.description || "",
-      priority:
-        (chatbotData.priority as "low" | "medium" | "high" | "critical") ||
-        "medium",
-      department: chatbotData.department || "",
-      category_id: chatbotData.category
-        ? parseInt(chatbotData.category)
-        : undefined,
-      assignedTo: undefined,
-      createdBy: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role as "admin" | "department_leader" | "troubleshooter",
-        department: user.department,
-        isActive: user.isActive || true,
-        createdAt: user.createdAt || new Date().toISOString(),
-      },
-    };
+      // Map priority string to an ID if needed; fallback to medium (2)
+      priority_id:
+        chatbotData.priority === "critical"
+          ? 4
+          : chatbotData.priority === "high"
+          ? 3
+          : chatbotData.priority === "low"
+          ? 1
+          : 2,
+      department_id: chatbotData.department ? parseInt(chatbotData.department) : undefined,
+      category_id: chatbotData.category ? parseInt(chatbotData.category) : undefined,
+      assigned_to: undefined,
+      created_by: user.id,
+    } as any;
 
     try {
       await createTicket(payload);
@@ -176,6 +172,14 @@ const TicketsPage: React.FC = () => {
       toast.error("Failed to create ticket");
     }
   };
+
+  // Ensure newest tickets appear first
+  useEffect(() => {
+    const sorted = [...displayedTickets].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+    setDisplayedTickets(sorted);
+  }, [tickets]);
 
   return (
     <div className="space-y-6">
@@ -218,7 +222,7 @@ const TicketsPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+      <div className="bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-slate-700 dark:to-slate-700 rounded-lg border border-gray-200 dark:border-gray-700">
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
