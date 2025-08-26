@@ -369,7 +369,7 @@ const SettingsPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="fixed bottom-20 right-20">
+      <div className="fixed top-20 right-10">
         <Button onClick={handleSystemSave} icon={<Save size={16} />}>
           Save Settings
         </Button>
