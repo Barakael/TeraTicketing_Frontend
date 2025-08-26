@@ -8,6 +8,7 @@ import {
   PieChart,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { useTickets } from "../contexts/TicketContext";
 import StatsCard from "../components/dashboard/StatsCard";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import useAnalytics from "../hooks/useAnalytics";
@@ -15,8 +16,10 @@ import useAnalytics from "../hooks/useAnalytics";
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const { analytics, loading, error } = useAnalytics();
+  const { tickets } = useTickets();
 
   const [wsMessages, setWsMessages] = useState<string[]>([]);
+  const [viewRange, setViewRange] = useState<"7" | "30">("7");
 
   // Greeting
   const getGreeting = () => {
@@ -31,13 +34,42 @@ const DashboardPage: React.FC = () => {
     totalTickets: 0,
     openTickets: 0,
     closedTickets: 0,
+    completedTickets: 0,
     averageResolutionTime: 0,
     ticketsByPriority: { critical: 0, high: 0, medium: 0, low: 0 },
-    ticketsByStatus: {},
+    ticketsByStatus: {} as Record<string, number>,
     resolutionRate: 0,
     workloadDistribution: {},
   };
   const userName = user?.name ?? "User";
+
+  // Build datasets for bar graphs (Category & Department) with week/month toggle
+  const now = new Date();
+  const startDate = new Date(
+    now.getTime() - (viewRange === "7" ? 7 : 30) * 24 * 60 * 60 * 1000
+  );
+
+  const filteredTickets = (tickets as any[] | undefined)?.filter((t: any) => {
+    const created = new Date(t?.created_at || t?.createdAt || now);
+    return created >= startDate && created <= now;
+  }) || [];
+
+  const aggregateCounts = (
+    items: any[],
+    nameSelector: (t: any) => string | undefined
+  ) => {
+    const counts: Record<string, number> = {};
+    items.forEach((t) => {
+      const name = nameSelector(t) || "Unknown";
+      counts[name] = (counts[name] || 0) + 1;
+    });
+    const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    const max = entries.length ? entries[0][1] : 0;
+    return { entries, max };
+  };
+
+  const categoryAgg = aggregateCounts(filteredTickets, (t) => t?.category?.name);
+  const departmentAgg = aggregateCounts(filteredTickets, (t) => t?.department?.name);
 
   // WebSocket connection (optional)
   useEffect(() => {
@@ -78,8 +110,8 @@ const DashboardPage: React.FC = () => {
       color: "yellow" as const,
     },
     {
-      title: "Closed Tickets",
-      value: safeAnalytics.closedTickets,
+      title: "Completed Tickets",
+      value: safeAnalytics.completedTickets,
       change: { value: 8, type: "increase" as const, period: "last month" },
       icon: BarChart3,
       color: "green" as const,
@@ -162,6 +194,115 @@ const DashboardPage: React.FC = () => {
 
       {/* Analytics */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Tickets by Category (Bar Graph with week/month toggle) */}
+        <div className="bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-slate-800 dark:to-slate-700 rounded-lg border border-indigo-100 dark:border-slate-700 p-6 shadow-xl">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Tickets by Category
+            </h3>
+            <div className="flex items-center space-x-2">
+              <button
+                className={`px-3 py-1 text-xs rounded-md border transition-colors ${
+                  viewRange === "7"
+                    ? "bg-gradient-to-r from-indigo-600 to-violet-700 text-white border-transparent shadow"
+                    : "bg-white/60 dark:bg-slate-900/30 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-slate-800"
+                }`}
+                onClick={() => setViewRange("7")}
+              >
+                This Week
+              </button>
+              <button
+                className={`px-3 py-1 text-xs rounded-md border transition-colors ${
+                  viewRange === "30"
+                    ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white border-transparent shadow"
+                    : "bg-white/60 dark:bg-slate-900/30 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-slate-800"
+                }`}
+                onClick={() => setViewRange("30")}
+              >
+                This Month
+              </button>
+            </div>
+          </div>
+          {categoryAgg.entries.length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400">No data</p>
+          ) : (
+            <div className="space-y-3">
+              {categoryAgg.entries.map(([name, count]) => (
+                <div key={name}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      {name}
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {count}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200/70 dark:bg-slate-700 rounded-full h-2">
+                    <div
+                      className="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500"
+                      style={{ width: `${(count as number / (categoryAgg.max || 1)) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Tickets by Department (Bar Graph with week/month toggle) */}
+        <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-slate-800 dark:to-slate-700 rounded-lg border border-emerald-100 dark:border-slate-700 p-6 shadow-xl">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Tickets by Department
+            </h3>
+            <div className="flex items-center space-x-2">
+              <button
+                className={`px-3 py-1 text-xs rounded-md border transition-colors ${
+                  viewRange === "7"
+                    ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-transparent shadow"
+                    : "bg-white/60 dark:bg-slate-900/30 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-slate-800"
+                }`}
+                onClick={() => setViewRange("7")}
+              >
+                This Week
+              </button>
+              <button
+                className={`px-3 py-1 text-xs rounded-md border transition-colors ${
+                  viewRange === "30"
+                    ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-transparent shadow"
+                    : "bg-white/60 dark:bg-slate-900/30 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-slate-800"
+                }`}
+                onClick={() => setViewRange("30")}
+              >
+                This Month
+              </button>
+            </div>
+          </div>
+          {departmentAgg.entries.length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400">No data</p>
+          ) : (
+            <div className="space-y-3">
+              {departmentAgg.entries.map(([name, count]) => (
+                <div key={name}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      {name}
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {count}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200/70 dark:bg-slate-700 rounded-full h-2">
+                    <div
+                      className="h-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500"
+                      style={{ width: `${(count as number / (departmentAgg.max || 1)) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         {/* Tickets by Priority */}
         <div className="bg-gradient-to-r from-gray-100 to-blue-50 dark:from-gray-800 dark:to-gray-700 rounded-lg border border-gray-200 dark:border-gray-700 p-6 shadow-xl">
           <div className="flex items-center justify-between mb-4">
@@ -236,171 +377,6 @@ const DashboardPage: React.FC = () => {
                 </div>
               )
             )}
-          </div>
-        </div>
-      </div>
-
-      {/* Additional Analytics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Workload Distribution */}
-        <div className="bg-gradient-to-r from-gray-100 to-blue-50 dark:from-gray-800 dark:to-gray-700 rounded-lg border border-gray-200 dark:border-gray-700 p-6 shadow-xl">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Workload Distribution
-            </h3>
-            <Users className="w-5 h-5 text-gray-400" />
-          </div>
-          <div className="space-y-3">
-            {Object.keys(safeAnalytics.workloadDistribution).length === 0 && (
-              <p className="text-gray-500 dark:text-gray-400">
-                No data available
-              </p>
-            )}
-            {Object.entries(safeAnalytics.workloadDistribution).map(
-              ([person, count]) => (
-                <div key={person} className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {person}
-                  </span>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                      <div
-                        className="bg-blue-600 h-2 rounded-full"
-                        style={{
-                          width: `${
-                            (count /
-                              Math.max(
-                                ...Object.values(
-                                  safeAnalytics.workloadDistribution
-                                )
-                              )) *
-                              100 || 0
-                          }%`,
-                        }}
-                      />
-                    </div>
-                    <span className="text-sm font-semibold text-gray-900 dark:text-white w-6">
-                      {count}
-                    </span>
-                  </div>
-                </div>
-              )
-            )}
-          </div>
-        </div>
-
-        {/* Performance Metrics */}
-        <div className="bg-gradient-to-r from-gray-100 to-purple-50 dark:from-gray-800 dark:to-gray-700 rounded-lg border border-gray-200 dark:border-gray-700 p-6 shadow-xl">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Performance Metrics
-            </h3>
-            <TrendingUp className="w-5 h-5 text-gray-400" />
-          </div>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Resolution Rate
-              </span>
-              <span className="text-lg font-semibold text-green-600 dark:text-green-400">
-                {safeAnalytics.resolutionRate}%
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Avg Resolution Time
-              </span>
-              <span className="text-lg font-semibold text-blue-600 dark:text-blue-400">
-                {safeAnalytics.averageResolutionTime}h
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Open vs Closed Ratio
-              </span>
-              <span className="text-lg font-semibold text-purple-600 dark:text-purple-400">
-                {safeAnalytics.openTickets}:{safeAnalytics.closedTickets}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Pending Tickets
-              </span>
-              <span className="text-lg font-semibold text-red-600 dark:text-red-400">
-                {safeAnalytics.ticketsByStatus?.pending || 0}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 shadow-xl">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Quick Actions
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="flex items-center justify-center space-x-2 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
-            <Ticket className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
-              Create New Ticket
-            </span>
-          </button>
-          <button className="flex items-center justify-center space-x-2 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-colors">
-            <Clock className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-            <span className="text-sm font-medium text-yellow-900 dark:text-yellow-100">
-              View Pending Tickets
-            </span>
-          </button>
-          <button className="flex items-center justify-center space-x-2 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors">
-            <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
-            <span className="text-sm font-medium text-green-900 dark:text-green-100">
-              View Analytics
-            </span>
-          </button>
-        </div>
-      </div>
-
-      {/* Recent Activity Summary */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 shadow-xl">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Recent Activity Summary
-        </h3>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-sm text-gray-700 dark:text-gray-300">
-                {safeAnalytics.closedTickets} tickets resolved this week
-              </span>
-            </div>
-            <span className="text-xs text-gray-500 dark:text-gray-400">
-              Last 7 days
-            </span>
-          </div>
-          <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-              <span className="text-sm text-gray-700 dark:text-gray-300">
-                {safeAnalytics.ticketsByStatus?.pending || 0} tickets pending
-                review
-              </span>
-            </div>
-            <span className="text-xs text-gray-500 dark:text-gray-400">
-              Requires attention
-            </span>
-          </div>
-          <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <span className="text-sm text-gray-700 dark:text-gray-300">
-                Average resolution time: {safeAnalytics.averageResolutionTime}{" "}
-                hours
-              </span>
-            </div>
-            <span className="text-xs text-gray-500 dark:text-gray-400">
-              This month
-            </span>
           </div>
         </div>
       </div>
