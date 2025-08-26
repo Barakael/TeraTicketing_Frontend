@@ -1,4 +1,5 @@
 import React, { ReactNode, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
@@ -40,18 +41,23 @@ const Modal: React.FC<ModalProps> = ({
     xl: 'max-w-4xl',
   };
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div 
-          className="fixed inset-0 bg-black/50 transition-opacity"
-          onClick={onClose}
-        />
+  const modal = (
+    <div className="fixed inset-0 z-[1000]">
+      {/* Backdrop covering entire app with blur */}
+      <div
+        className="fixed inset-0 bg-black/50 backdrop-blur-md"
+        onClick={onClose}
+      />
+
+      {/* Centered modal container; pointer-events gated so backdrop clicks work */}
+      <div className="fixed inset-0 grid place-items-center p-4 pointer-events-none">
         <div
           className={cn(
-            'relative w-full rounded-lg bg-white shadow-xl dark:bg-gray-800',
+            'pointer-events-auto w-full rounded-2xl bg-white shadow-2xl ring-1 ring-black/10 dark:bg-gray-800',
             sizes[size]
           )}
+          role="dialog"
+          aria-modal="true"
         >
           {(title || showCloseButton) && (
             <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
@@ -64,6 +70,7 @@ const Modal: React.FC<ModalProps> = ({
                 <button
                   onClick={onClose}
                   className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+                  aria-label="Close"
                 >
                   <X size={20} />
                 </button>
@@ -77,6 +84,8 @@ const Modal: React.FC<ModalProps> = ({
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 };
 
 export default Modal;
