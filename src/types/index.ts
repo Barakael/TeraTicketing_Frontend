@@ -69,6 +69,8 @@ export interface Ticket {
   department: Department;
   assignedTo: User;
   comments: Comment[];
+  // Optional fields that may be returned by API
+  resolution_report?: string;
 }
 
 // Ticket update request payload
@@ -82,6 +84,8 @@ export interface TicketUpdateRequest {
   assigned_to?: number;
   merge_description?: boolean;
   append_description?: string;
+  // Optional resolution report to update
+  resolution_report?: string;
 }
 
 // Legacy types for backward compatibility
@@ -127,6 +131,9 @@ export interface Analytics {
   totalTickets: number;
   openTickets: number;
   closedTickets: number;
+  inProgressTickets: number;
+  pendingTickets: number;
+  completedTickets: number;
   averageResolutionTime: number;
   ticketsByPriority: Record<string, number>;
   ticketsByStatus: Record<string, number>;
