@@ -201,8 +201,6 @@ const PublicTicketPage: React.FC = () => {
         priority_text: dataToSubmit.data.priority_text,
         create_ticket: true,
     };
-    
-    console.log("Submitting final ticket payload:", payload);
 
     try {
       const res = await axios.post(`${API_BASE_URL}/messages/public`, payload);

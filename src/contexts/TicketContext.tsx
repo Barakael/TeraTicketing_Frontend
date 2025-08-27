@@ -101,7 +101,6 @@ export const TicketProvider: React.FC<TicketProviderProps> = ({ children }) => {
     setLoading(true);
     try {
       const res = await axios.get(`${API_BASE_URL}/api/tickets`);
-      console.log("Raw ticket data:", res.data.data?.[0]); // Debug: log first ticket structure
       const normalized = (res.data.data || []).map(normalizeTicket);
       setTickets(normalized);
     } catch (err: any) {
@@ -215,12 +214,10 @@ export const TicketProvider: React.FC<TicketProviderProps> = ({ children }) => {
 
   const mergeTickets = async (primaryId: string, secondaryId: string) => {
     try {
-      console.log("Attempting to merge tickets:", { primaryId, secondaryId });
       const response = await axios.post(`${API_BASE_URL}/api/tickets/merge`, {
         primaryTicketId: primaryId,
         secondaryTicketId: secondaryId,
       });
-      console.log("Merge response:", response.data);
       toast.success("Tickets merged successfully!");
       fetchTickets(); // Refresh tickets
     } catch (err: any) {
@@ -252,45 +249,43 @@ export const TicketProvider: React.FC<TicketProviderProps> = ({ children }) => {
     ticketIds: string[]
   ) => {
     try {
-      // Get the tickets to export
-      const ticketsToExport = tickets.filter((ticket) =>
-        ticketIds.includes(ticket.id)
-      );
+             // Get the tickets to export
+       const ticketsToExport = tickets.filter((ticket) =>
+         ticketIds.includes(ticket.id.toString())
+       );
 
-      if (format === "excel") {
-        // Create CSV content
-        const headers = [
-          "ID",
-          "Title",
-          "Description",
-          "Priority",
-          "Status",
-          "Department",
-          "Category",
-          "Created By",
-          "Assigned To",
-          "Created At",
-          "Updated At",
-        ];
+             if (format === "excel") {
+         // Create compact CSV content with essential fields only
+         const headers = [
+           "ID",
+           "Title",
+           "Priority",
+           "Status",
+           "Department",
+           "Assigned To",
+           "Created At",
+         ];
 
-        const csvContent = [
-          headers.join(","),
-          ...ticketsToExport.map((ticket) =>
-            [
-              ticket.id,
-              `"${ticket.title.replace(/"/g, '""')}"`,
-              `"${ticket.description.replace(/"/g, '""')}"`,
-              ticket.priority,
-              ticket.status,
-              ticket.department,
-              ticket.category,
-              ticket.createdBy.name,
-              ticket.assignedTo?.name || "Unassigned",
-              ticket.createdAt,
-              ticket.updatedAt,
-            ].join(",")
-          ),
-        ].join("\n");
+         const csvContent = [
+           headers.join(","),
+           ...ticketsToExport.map((ticket) => [
+             ticket.id,
+             `"${(ticket.title || "").replace(/"/g, '""')}"`,
+             ticket.priority?.name || 
+               (ticket.priority_id === 1 ? "Low" : 
+                ticket.priority_id === 2 ? "Medium" : 
+                ticket.priority_id === 3 ? "High" : 
+                ticket.priority_id === 4 ? "Critical" : "Unknown"),
+             ticket.status?.name || 
+               (ticket.status_id === 1 ? "Pending" : 
+                ticket.status_id === 2 ? "In Progress" : 
+                ticket.status_id === 3 ? "Completed" : 
+                ticket.status_id === 4 ? "Closed" : "Unknown"),
+             ticket.department?.name || ticket.department_id || "Unknown",
+             ticket.assignedTo?.name || "Unassigned",
+             ticket.created_at ? new Date(ticket.created_at).toLocaleDateString() : "Unknown",
+           ].join(",")),
+         ].join("\n");
 
         // Create and download file
         const blob = new Blob([csvContent], {
@@ -309,66 +304,104 @@ export const TicketProvider: React.FC<TicketProviderProps> = ({ children }) => {
         window.URL.revokeObjectURL(url);
 
         toast.success("Excel export completed successfully!");
-      } else if (format === "pdf") {
-        // For PDF, we'll create a simple text-based PDF using jsPDF
-        // First, let's check if jsPDF is available
-        try {
-          const { jsPDF } = await import("jspdf");
-          const doc = new jsPDF();
+             } else if (format === "pdf") {
+         // For PDF, we'll create a table format using jsPDF
+         try {
+           const { jsPDF } = await import("jspdf");
+           const doc = new jsPDF();
 
-          // Add title
-          doc.setFontSize(16);
-          doc.text("Tickets Export", 20, 20);
+           // Add title
+           doc.setFontSize(16);
+           doc.text("Tickets Export", 20, 20);
 
-          // Add date
-          doc.setFontSize(10);
-          doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 30);
+           // Add date
+           doc.setFontSize(10);
+           doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 30);
 
-          let yPosition = 50;
-          ticketsToExport.forEach((ticket, index) => {
-            if (yPosition > 250) {
-              doc.addPage();
-              yPosition = 20;
-            }
-
-            doc.setFontSize(12);
+                       // Create table headers with adjusted column widths to fit page
+            const headers = ["ID", "Title", "Priority", "Status", "Department", "Assigned", "Created"];
+            const columnWidths = [12, 45, 20, 20, 25, 20, 20];
+            let xPosition = 20;
+            
+            // Draw header row
+            doc.setFontSize(9);
             doc.setFont(undefined, "bold");
-            doc.text(`Ticket ${index + 1}: ${ticket.title}`, 20, yPosition);
+            headers.forEach((header, index) => {
+              doc.text(header, xPosition, 45);
+              xPosition += columnWidths[index];
+            });
 
-            yPosition += 8;
-            doc.setFontSize(10);
-            doc.setFont(undefined, "normal");
-            doc.text(`ID: ${ticket.id}`, 20, yPosition);
-            yPosition += 6;
-            doc.text(`Priority: ${ticket.priority}`, 20, yPosition);
-            yPosition += 6;
-            doc.text(`Status: ${ticket.status}`, 20, yPosition);
-            yPosition += 6;
-            doc.text(`Department: ${ticket.department}`, 20, yPosition);
-            yPosition += 6;
-            doc.text(`Created by: ${ticket.createdBy.name}`, 20, yPosition);
-            yPosition += 6;
-            doc.text(
-              `Assigned to: ${ticket.assignedTo?.name || "Unassigned"}`,
-              20,
-              yPosition
-            );
-            yPosition += 6;
-            doc.text(
-              `Created: ${new Date(ticket.createdAt).toLocaleDateString()}`,
-              20,
-              yPosition
-            );
-            yPosition += 12;
+            // Draw header line
+            doc.line(20, 47, 162, 47);
 
-            // Add description (truncated)
-            const description =
-              ticket.description.length > 100
-                ? ticket.description.substring(0, 100) + "..."
-                : ticket.description;
-            doc.text(`Description: ${description}`, 20, yPosition);
-            yPosition += 15;
-          });
+           // Add ticket data in table format
+           let yPosition = 60;
+           ticketsToExport.forEach((ticket, index) => {
+             if (yPosition > 250) {
+               doc.addPage();
+               yPosition = 20;
+                               // Redraw headers on new page
+                xPosition = 20;
+                doc.setFontSize(9);
+                doc.setFont(undefined, "bold");
+                headers.forEach((header, headerIndex) => {
+                  doc.text(header, xPosition, 25);
+                  xPosition += columnWidths[headerIndex];
+                });
+                doc.line(20, 27, 162, 27);
+               yPosition = 40;
+             }
+
+             doc.setFontSize(9);
+             doc.setFont(undefined, "normal");
+             xPosition = 20;
+
+             // ID
+             doc.text(ticket.id.toString(), xPosition, yPosition);
+             xPosition += columnWidths[0];
+
+                           // Title (truncated if too long)
+              const title = ticket.title || "";
+              const truncatedTitle = title.length > 20 ? title.substring(0, 17) + "..." : title;
+              doc.text(truncatedTitle, xPosition, yPosition);
+              xPosition += columnWidths[1];
+
+              // Priority
+              const priorityName = ticket.priority?.name || 
+                (ticket.priority_id === 1 ? "Low" : 
+                 ticket.priority_id === 2 ? "Medium" : 
+                 ticket.priority_id === 3 ? "High" : 
+                 ticket.priority_id === 4 ? "Critical" : "Unknown");
+              doc.text(priorityName, xPosition, yPosition);
+              xPosition += columnWidths[2];
+
+              // Status
+              const statusName = ticket.status?.name || 
+                (ticket.status_id === 1 ? "Pending" : 
+                 ticket.status_id === 2 ? "In Progress" : 
+                 ticket.status_id === 3 ? "Completed" : 
+                 ticket.status_id === 4 ? "Closed" : "Unknown");
+              doc.text(statusName, xPosition, yPosition);
+              xPosition += columnWidths[3];
+
+              // Department
+              const deptName = ticket.department?.name || ticket.department_id || "Unknown";
+              const truncatedDept = deptName.toString().length > 12 ? deptName.toString().substring(0, 9) + "..." : deptName.toString();
+              doc.text(truncatedDept, xPosition, yPosition);
+              xPosition += columnWidths[4];
+
+              // Assigned To
+              const assignedName = ticket.assignedTo?.name || "Unassigned";
+              const truncatedAssigned = assignedName.length > 8 ? assignedName.substring(0, 5) + "..." : assignedName;
+              doc.text(truncatedAssigned, xPosition, yPosition);
+              xPosition += columnWidths[5];
+
+             // Created Date
+             const createdDate = ticket.created_at ? new Date(ticket.created_at).toLocaleDateString() : "Unknown";
+             doc.text(createdDate, xPosition, yPosition);
+
+             yPosition += 8;
+           });
 
           // Save the PDF
           doc.save(
@@ -453,8 +486,6 @@ export const TicketProvider: React.FC<TicketProviderProps> = ({ children }) => {
       }
 
       if (filters.searchQuery) params.append("search", filters.searchQuery);
-
-      console.log("Filtering tickets with params:", params.toString());
 
       const response = await axios.get(
         `${API_BASE_URL}/api/tickets?${params.toString()}`

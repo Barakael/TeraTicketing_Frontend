@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Filter, Download, Merge, Calendar } from "lucide-react";
+import { Filter, Download, Merge, Calendar, SortDesc } from "lucide-react";
 import Button from "../ui/Button";
 import { cn } from "../../utils/cn";
 import axios from "axios";
@@ -15,6 +15,8 @@ interface TicketFiltersProps {
     dateRange: string;
     startDate?: string;
     endDate?: string;
+    sortBy: string;
+    sortOrder: "asc" | "desc";
   };
   onFilterChange: (filters: any) => void;
   onExport: (format: "pdf" | "excel") => void;
@@ -75,14 +77,54 @@ const TicketFilters: React.FC<TicketFiltersProps> = ({
     { value: "custom", label: "Custom Range" },
   ];
 
+  const sortOptions = [
+    { value: "createdAt", label: "Created Date" },
+    { value: "updatedAt", label: "Updated Date" },
+    { value: "priority", label: "Priority" },
+    { value: "status", label: "Status" },
+    { value: "title", label: "Title" },
+  ];
+
   const handleFilterChange = (key: string, value: string) => {
-    console.log(`Filter changed: ${key} = ${value}`);
     const newFilters = {
       ...filters,
       [key]: value,
     };
-    console.log("New filters:", newFilters);
     onFilterChange(newFilters);
+  };
+
+  const handleSortOrderToggle = () => {
+    const newOrder = filters.sortOrder === "desc" ? "asc" : "desc";
+    onFilterChange({
+      ...filters,
+      sortOrder: newOrder,
+    });
+  };
+
+  const clearAllFilters = () => {
+    onFilterChange({
+      status: "",
+      priority: "",
+      department: "",
+      assignedTo: "",
+      dateRange: "",
+      startDate: "",
+      endDate: "",
+      sortBy: "createdAt",
+      sortOrder: "desc",
+    });
+  };
+
+  const hasActiveFilters = () => {
+    return (
+      filters.status ||
+      filters.priority ||
+      filters.department ||
+      filters.assignedTo ||
+      filters.dateRange ||
+      filters.startDate ||
+      filters.endDate
+    );
   };
 
   return (
@@ -126,7 +168,7 @@ const TicketFilters: React.FC<TicketFiltersProps> = ({
         >
           <option value="">All Departments</option>
           {departments.map((dept) => (
-            <option key={dept.id} value={dept.id.toString()}>
+            <option key={dept.id} value={dept.name}>
               {dept.name}
             </option>
           ))}
@@ -160,6 +202,44 @@ const TicketFilters: React.FC<TicketFiltersProps> = ({
               className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             />
           </div>
+        )}
+
+        <div className="flex items-center space-x-2">
+          <select
+            value={filters.sortBy}
+            onChange={(e) => handleFilterChange("sortBy", e.target.value)}
+            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+          >
+            {sortOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSortOrderToggle}
+            icon={<SortDesc size={16} />}
+            className={cn(
+              "transition-all duration-200",
+              filters.sortOrder === "asc" && "rotate-180"
+            )}
+          >
+            {filters.sortOrder === "desc" ? "↓" : "↑"}
+          </Button>
+        </div>
+
+        {hasActiveFilters() && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearAllFilters}
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          >
+            Clear Filters
+          </Button>
         )}
 
         <div className="flex items-center space-x-2 ml-auto">

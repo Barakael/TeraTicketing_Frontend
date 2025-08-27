@@ -36,6 +36,8 @@ const TicketsPage: React.FC = () => {
     dateRange: "",
     startDate: "",
     endDate: "",
+    sortBy: "createdAt",
+    sortOrder: "desc" as "asc" | "desc",
   });
   const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
   const [showChatbot, setShowChatbot] = useState(false);
@@ -52,9 +54,6 @@ const TicketsPage: React.FC = () => {
   useEffect(() => {
     const fetchFilteredTickets = async () => {
       try {
-        console.log("Fetching filtered tickets with filters:", filters);
-        console.log("Search query:", searchQuery);
-        
         let filtered = tickets;
 
         // Apply search filter first
@@ -62,29 +61,167 @@ const TicketsPage: React.FC = () => {
           filtered = searchTickets(searchQuery);
         }
 
-        // Apply API-based filters
-        const apiFilters = {
-          ...filters,
-          searchQuery: searchQuery,
-        };
+        // Apply client-side filtering
+        filtered = applyClientSideFilters(filtered, filters);
 
-        console.log("API filters:", apiFilters);
-        const apiFiltered = await filterTickets(apiFilters);
-        console.log("API filtered results:", apiFiltered.length, "tickets");
-        setDisplayedTickets(apiFiltered);
+        // Apply sorting
+        filtered = sortTickets(filtered, filters.sortBy, filters.sortOrder);
+        
+        setDisplayedTickets(filtered);
       } catch (error) {
         console.error("Error fetching filtered tickets:", error);
-        // Fallback to client-side filtering
+        // Fallback to client-side filtering and sorting
         let filtered = tickets;
         if (searchQuery) {
           filtered = searchTickets(searchQuery);
         }
+        filtered = applyClientSideFilters(filtered, filters);
+        filtered = sortTickets(filtered, filters.sortBy, filters.sortOrder);
         setDisplayedTickets(filtered);
       }
     };
 
     fetchFilteredTickets();
-  }, [searchQuery, filters, tickets, searchTickets, filterTickets]);
+  }, [searchQuery, filters, tickets, searchTickets]);
+
+  // Client-side filtering function
+  const applyClientSideFilters = (ticketsToFilter: Ticket[], currentFilters: any): Ticket[] => {
+    return ticketsToFilter.filter((ticket) => {
+      // Status filter - check status.name if available, otherwise check status_id
+      if (currentFilters.status) {
+        const ticketStatus = ticket.status?.name || ticket.status_id?.toString();
+        if (ticketStatus !== currentFilters.status) {
+          return false;
+        }
+      }
+      
+      // Priority filter - check priority.name if available, otherwise check priority_id
+      if (currentFilters.priority) {
+        const ticketPriority = ticket.priority?.name || ticket.priority_id?.toString();
+        if (ticketPriority !== currentFilters.priority) {
+          return false;
+        }
+      }
+      
+      // Department filter - check department.name if available, otherwise check department_id
+      if (currentFilters.department) {
+        const ticketDepartment = ticket.department?.name || ticket.department_id?.toString();
+        if (ticketDepartment !== currentFilters.department) {
+          return false;
+        }
+      }
+      
+      // Assigned to filter
+      if (currentFilters.assignedTo && ticket.assignedTo?.id !== currentFilters.assignedTo) {
+        return false;
+      }
+      
+      // Date range filter
+      if (currentFilters.dateRange || currentFilters.startDate || currentFilters.endDate) {
+        const ticketDate = new Date(ticket.created_at);
+        let startDate: Date | null = null;
+        let endDate: Date | null = null;
+        
+        if (currentFilters.startDate) {
+          startDate = new Date(currentFilters.startDate);
+        } else if (currentFilters.dateRange) {
+          const now = new Date();
+          switch (currentFilters.dateRange) {
+            case "today":
+              startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+              endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+              break;
+            case "yesterday":
+              startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+              endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+              break;
+            case "last_7_days":
+              startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+              endDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+              break;
+            case "last_30_days":
+              startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+              endDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+              break;
+            case "this_month":
+              startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+              endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+              break;
+            case "last_month":
+              startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+              endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+              break;
+          }
+        }
+        
+        if (currentFilters.endDate) {
+          endDate = new Date(currentFilters.endDate);
+        }
+        
+        if (startDate && endDate) {
+          if (ticketDate < startDate || ticketDate >= endDate) {
+            return false;
+          }
+        }
+      }
+      
+      return true;
+    });
+  };
+
+  // Sorting function
+  const sortTickets = (ticketsToSort: Ticket[], sortBy: string, sortOrder: "asc" | "desc"): Ticket[] => {
+    return [...ticketsToSort].sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+      
+      switch (sortBy) {
+        case "createdAt":
+          aValue = new Date(a.created_at).getTime();
+          bValue = new Date(b.created_at).getTime();
+          break;
+        case "updatedAt":
+          aValue = new Date(a.updated_at).getTime();
+          bValue = new Date(b.updated_at).getTime();
+          break;
+        case "priority":
+          // Handle both priority object and priority_id
+          const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+          if (a.priority?.name && b.priority?.name) {
+            aValue = priorityOrder[a.priority.name as keyof typeof priorityOrder] || 0;
+            bValue = priorityOrder[b.priority.name as keyof typeof priorityOrder] || 0;
+          } else {
+            aValue = a.priority_id || 0;
+            bValue = b.priority_id || 0;
+          }
+          break;
+        case "status":
+          // Handle both status object and status_id
+          const statusOrder = { pending: 1, in_progress: 2, completed: 3, closed: 4 };
+          if (a.status?.name && b.status?.name) {
+            aValue = statusOrder[a.status.name as keyof typeof statusOrder] || 0;
+            bValue = statusOrder[b.status.name as keyof typeof statusOrder] || 0;
+          } else {
+            aValue = a.status_id || 0;
+            bValue = b.status_id || 0;
+          }
+          break;
+        case "title":
+          aValue = (a.title || "").toLowerCase();
+          bValue = (b.title || "").toLowerCase();
+          break;
+        default:
+          aValue = new Date(a.created_at).getTime();
+          bValue = new Date(b.created_at).getTime();
+      }
+      
+      if (sortOrder === "asc") {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+  };
 
   // Reset to page 1 whenever filters change
   useEffect(() => {
@@ -173,13 +310,7 @@ const TicketsPage: React.FC = () => {
     }
   };
 
-  // Ensure newest tickets appear first
-  useEffect(() => {
-    const sorted = [...displayedTickets].sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
-    setDisplayedTickets(sorted);
-  }, [tickets]);
+
 
   return (
     <div className="space-y-6">
